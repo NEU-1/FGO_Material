@@ -1,0 +1,360 @@
+{
+  "event_quests": [
+    {
+      "event": "산타네모",
+      "case": "roulette",
+      "stages": [
+        {
+          "stage": "day1",
+          "diff": "90+",
+          "drops": [
+            { "item": "전마의유각", "rate": 0.315 },
+            { "item": "소라껍데기", "rate": 0.291 },
+            { "item": "영웅의증표", "rate": 0.452 },
+            { "item": "인연", "rate": 10.98 }
+          ],
+          "tickets": { "base": 49.3, "per_ce": 16.4 },
+          "ce_drop_rate": 0.0239
+        },
+        {
+          "stage": "day2",
+          "diff": "90+",
+          "drops": [
+            { "item": "몽환의비늘가루", "rate": 0.498 },
+            { "item": "고스트랜턴", "rate": 0.287 },
+            { "item": "영웅의증표", "rate": 0.464 },
+            { "item": "인연", "rate": 10.98 }
+          ],
+          "tickets": { "base": 49.4, "per_ce": 16.4 },
+          "ce_drop_rate": 0.0264
+        },
+        {
+          "stage": "day3",
+          "diff": "90+",
+          "drops": [
+            { "item": "유구의열매", "rate": 0.307 },
+            { "item": "신맥영자", "rate": 0.292 },
+            { "item": "만사의독침", "rate": 0.345 },
+            { "item": "인연", "rate": 10.98 }
+          ],
+          "tickets": { "base": 49.4, "per_ce": 16.4 },
+          "ce_drop_rate": 0.0242
+        },
+        {
+          "stage": "day4",
+          "diff": "90+",
+          "drops": [
+            { "item": "진리의알", "rate": 0.257 },
+            { "item": "재난의화살촉", "rate": 0.292 },
+            { "item": "사면의작은종", "rate": 0.465 },
+            { "item": "인연", "rate": 10.98 }
+          ],
+          "tickets": { "base": 49.5, "per_ce": 16.5 },
+          "ce_drop_rate": 0.027
+        },
+        {
+          "stage": "day5",
+          "diff": "90+",
+          "drops": [
+            { "item": "기기신주", "rate": 0.262 },
+            { "item": "영원결빙", "rate": 0.292 },
+            { "item": "황혼의의식검", "rate": 0.46 },
+            { "item": "인연", "rate": 10.98 }
+          ],
+          "tickets": { "base": 49.7, "per_ce": 16.5 },
+          "ce_drop_rate": 0.0239
+        },
+        {
+          "stage": "day6",
+          "diff": "90+",
+          "drops": [
+            { "item": "원초의산모", "rate": 0.316 },
+            { "item": "금단의페이지", "rate": 0.301 },
+            { "item": "마술수액", "rate": 0.467 },
+            { "item": "인연", "rate": 10.98 }
+          ],
+          "tickets": { "base": 49.5, "per_ce": 16.5 },
+          "ce_drop_rate": 0.0257
+        },
+        {
+          "stage": "메인",
+          "diff": "90+",
+          "drops": [
+            { "item": "혈루석", "rate": 0.309 },
+            { "item": "무간의톱니바퀴", "rate": 0.286 },
+            { "item": "황혼의의식검", "rate": 0.448 },
+            { "item": "인연", "rate": 10.98 }
+          ],
+          "tickets": { "base": 49.4, "per_ce": 16.4 },
+          "ce_drop_rate": 0.0253
+        },
+        {
+          "stage": "메인",
+          "diff": "90++",
+          "drops": [
+            { "item": "진리의알", "rate": 0.311 },
+            { "item": "스카라베", "rate": 0.311 },
+            { "item": "에테르수광체", "rate": 0.337 },
+            { "item": "영웅의증표", "rate": 0.548 },
+            { "item": "인연", "rate": 13.18 }
+          ],
+          "tickets": { "base": 54.0, "per_ce": 18.0 },
+          "ce_drop_rate": 0.0279
+        }
+      ]
+    },
+    {
+      "event": "서머어드벤쳐",
+      "case": "box",
+      "stages": [
+        {
+          "stage": "메인",
+          "diff": "90+",
+          "drops": [
+            { "item": "효광노심",   "rate": 0.31  },
+            { "item": "재난의화살촉", "rate": 0.532 },
+            { "item": "인연", "rate": 10.98 }
+          ],
+          "box": {
+            "gold":  { "base": 2.16 },
+            "silver":{ "base": 2.22 },
+            "bronze":{ "base": 2.14 }
+          }
+        },
+        {
+          "stage": "메인",
+          "diff": "90++",
+          "drops": [
+            { "item": "스카라베",     "rate": 0.303 },
+            { "item": "황혼의의식검", "rate": 0.916 },
+            { "item": "인연", "rate": 13.18 }
+          ],
+          "box": {
+            "gold":  { "base": 2.30 },
+            "silver":{ "base": 2.30 },
+            "bronze":{ "base": 2.32 }
+          }
+        }
+      ]
+    },
+    {
+      "event": "산타아비게일",
+      "case": "roulette",
+      "stages": [
+        {
+          "stage": "메인",
+          "diff": "90+",
+          "drops": [
+            { "item": "용의역린", "rate": 0.263 },
+            { "item": "몽환의비늘가루", "rate": 0.531 },
+            { "item": "인연", "rate": 10.98 }
+          ],
+          "tickets": { "base": 49.4, "per_ce": 16.4 },
+          "ce_drop_rate": 0.0262
+        },
+        {
+          "stage": "메인",
+          "diff": "90++",
+          "drops": [
+            { "item": "스카라베", "rate": 0.31 },
+            { "item": "광기의잔재", "rate": 0.947 },
+            { "item": "인연", "rate": 13.18 }
+          ],
+          "tickets": { "base": 53.97, "per_ce": 17.99 },
+          "ce_drop_rate": 0.0285
+        }
+      ]
+    },
+    {
+      "event": "알퀘이드레이드",
+      "case": "raid",
+      "stages": [
+        {
+          "stage": "1차",
+          "diff": "90++",
+          "drops": [
+            { "item": "황성의조각", "rate": 0.257 },
+            { "item": "무지갯빛실타래", "rate": 0.701 },
+            { "item": "호문클루스", "rate": 0.699 },
+            { "item": "허영의먼지", "rate": 0.84 },
+            { "item": "QP", "rate": 5.24 },
+            { "item": "인연", "rate": 26.36 }
+          ]
+        },
+        {
+          "stage": "2차",
+          "diff": "90++",
+          "drops": [
+            { "item": "월광핵", "rate": 0.275 },
+            { "item": "혼돈의발톱", "rate": 0.381 },
+            { "item": "고담곡옥", "rate": 0.73 },
+            { "item": "사면의작은종", "rate": 1.08 },
+            { "item": "QP", "rate": 5.24 },
+            { "item": "인연", "rate": 26.36 }
+          ]
+        }
+      ]
+    },
+    {
+      "event": "인드라대시련",
+      "case": "roulette",
+      "stages": [
+        {
+          "stage": "메인",
+          "diff": "90+",
+          "drops": [
+            { "item": "기기신주", "rate": 0.266 },
+            { "item": "흑요예인", "rate": 0.764 },
+            { "item": "인연", "rate": 10.98 }
+          ],
+          "tickets": { "base": 49.5, "per_ce": 16.5 },
+          "ce_drop_rate": 0.0266
+        },
+        {
+          "stage": "메인",
+          "diff": "90++",
+          "drops": [
+            { "item": "스카라베", "rate": 0.313 },
+            { "item": "최후의꽃", "rate": 0.636 },
+            { "item": "인연", "rate": 13.18 }
+          ],
+          "tickets": { "base": 53.9, "per_ce": 17.9 },
+          "ce_drop_rate": 0.0287
+        }
+      ]
+    },
+    {
+      "event": "관위대관전_세이버",
+      "case": "raid",
+      "stages": [
+        {
+          "stage": "메인",
+          "diff": "100+++",
+          "drops": [
+            { "item": "도깨비불꽈리", "rate": 0.11 },
+            { "item": "원초의산모", "rate": 0.13 },
+            { "item": "전마의유각", "rate": 0.13 },
+            { "item": "용의역린", "rate": 0.10 },
+            { "item": "신맥영자", "rate": 0.31 },
+            { "item": "오로라강", "rate": 0.28 },
+            { "item": "대기사훈장", "rate": 0.27 },
+            { "item": "운제철", "rate": 0.27 },
+            { "item": "황혼의의식검", "rate": 0.41 },
+            { "item": "우자의사슬", "rate": 0.38 },
+            { "item": "용의송곳니", "rate": 0.36 },
+            { "item": "영웅의증표", "rate": 0.38 },
+            { "item": "QP", "rate": 4.16 },
+            { "item": "인연", "rate": 69.35 }
+          ]
+        }
+      ]
+    },
+    {
+      "event": "관위대관전_버서커",
+      "case": "raid",
+      "stages": [
+        {
+          "stage": "메인",
+          "diff": "100+++",
+          "drops": [
+            { "item": "황성의조각", "rate": 0.11 },
+            { "item": "효광노심", "rate": 0.13 },
+            { "item": "주수담석", "rate": 0.10 },
+            { "item": "혼돈의발톱", "rate": 0.14 },
+            { "item": "신맥영자", "rate": 0.30 },
+            { "item": "거인의반지", "rate": 0.27 },
+            { "item": "소라껍데기", "rate": 0.26 },
+            { "item": "팔연쌍정", "rate": 0.26 },
+            { "item": "잊을수없는재", "rate": 0.41 },
+            { "item": "여진화약", "rate": 0.38 },
+            { "item": "마술수액", "rate": 0.38 },
+            { "item": "허영의먼지", "rate": 0.36 },
+            { "item": "QP", "rate": 4.16 },
+            { "item": "인연", "rate": 69.35 }
+          ]
+        }
+      ]
+    },
+    {
+      "event": "관위대관전_랜서",
+      "case": "raid",
+      "stages": [
+        {
+          "stage": "메인",
+          "diff": "100+++",
+          "drops": [
+            { "item": "유령상", "rate": 0.40 },
+            { "item": "유구의열매", "rate": 0.13 },
+            { "item": "흑수지", "rate": 0.13 },
+            { "item": "정령근", "rate": 0.11 },
+            { "item": "혼돈의발톱", "rate": 0.13 },
+            { "item": "광은의관", "rate": 0.31 },
+            { "item": "영원결빙", "rate": 0.25 },
+            { "item": "호문클루스", "rate": 0.26 },
+            { "item": "세계수의씨앗", "rate": 0.29 },
+            { "item": "잊을수없는재", "rate": 0.39 },
+            { "item": "운제철", "rate": 0.38 },
+            { "item": "용의송곳니", "rate": 0.36 },
+            { "item": "영웅의증표", "rate": 0.36 },
+            { "item": "QP", "rate": 4.15 },
+            { "item": "인연", "rate": 69.35 }
+          ]
+        }
+      ]
+    },
+    {
+      "event": "관위대관전_엑스트라1",
+      "case": "raid",
+      "stages": [
+        {
+          "stage": "메인",
+          "diff": "100+++",
+          "drops": [
+            { "item": "유령상", "rate": 0.40 },
+            { "item": "구십구경", "rate": 0.08 },
+            { "item": "효광노심", "rate": 0.13 },
+            { "item": "주수담석", "rate": 0.10 },
+            { "item": "흑수지", "rate": 0.12 },
+            { "item": "몽환의비늘가루", "rate": 0.26 },
+            { "item": "오로라강", "rate": 0.25 },
+            { "item": "금단의페이지", "rate": 0.22 },
+            { "item": "무간의톱니바퀴", "rate": 0.22 },
+            { "item": "사면의작은종", "rate": 0.36 },
+            { "item": "마술수액", "rate": 0.34 },
+            { "item": "우자의사슬", "rate": 0.31 },
+            { "item": "허영의먼지", "rate": 0.36 },
+            { "item": "QP", "rate": 3.87 },
+            { "item": "인연", "rate": 69.35 }
+          ]
+        }
+      ]
+    },
+    {
+      "event": "관위대관전_엑스트라2",
+      "case": "raid",
+      "stages": [
+        {
+          "stage": "메인",
+          "diff": "100+++",
+          "drops": [
+            { "item": "유령상", "rate": 0.37 },
+            { "item": "황성의조각", "rate": 0.09 },
+            { "item": "기기신주", "rate": 0.09 },
+            { "item": "봉마의램프", "rate": 0.12 },
+            { "item": "혼돈의발톱", "rate": 0.09 },
+            { "item": "무지갯빛실타래", "rate": 0.28 },
+            { "item": "한고령", "rate": 0.25 },
+            { "item": "고담곡옥", "rate": 0.25 },
+            { "item": "고스트랜턴", "rate": 0.27 },
+            { "item": "황혼의의식검", "rate": 0.36 },
+            { "item": "소곡의철향", "rate": 0.39 },
+            { "item": "만사의독침", "rate": 0.29 },
+            { "item": "영웅의증표", "rate": 0.37 },
+            { "item": "QP", "rate": 3.85 },
+            { "item": "인연", "rate": 69.35 }
+          ]
+        }
+      ]
+    }
+  ]
+}

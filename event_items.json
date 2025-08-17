@@ -1,0 +1,78 @@
+{
+  "event_items": [
+    {
+      "event": "산타네모",
+      "case": "roulette",
+      "need_tickets": 600,
+      "drops": [
+        { "item": "호문클루스",   "rate": 2 },
+        { "item": "소라껍데기",   "rate": 2 },
+        { "item": "소곡의철향",   "rate": 3 },
+        { "item": "여진화약",     "rate": 3 },
+        { "item": "동사과",       "rate": 3 },
+        { "item": "QP",           "rate": 4.48 },
+        { "item": "종화4",        "rate": 25 },
+        { "item": "교환티켓",     "rate": 2 }
+      ],
+      "exchanges": [
+        {
+          "token": "교환티켓",
+          "per_token": 1,
+          "options": ["효광노심","전마의유각","원초의산모","재난의화살촉","광은의관"]
+        }
+      ]
+    },
+    {
+      "event": "서머어드벤쳐",
+      "case": "box",
+      "need_boxes": 1,
+      "drops": [
+        { "item": "흉골",           "rate": 0.2 },
+        { "item": "용의송곳니",     "rate": 0.2 },
+        { "item": "여진화약",       "rate": 0.2 },
+        { "item": "만사의독침",     "rate": 0.2 },
+        { "item": "마술수액",       "rate": 0.2 },
+        { "item": "뱀의보옥",       "rate": 0.2 },
+        { "item": "소라껍데기",     "rate": 0.2 },
+        { "item": "고스트랜턴",     "rate": 0.2 },
+        { "item": "거인의반지",     "rate": 0.2 },
+        { "item": "무지갯빛실타래", "rate": 0.2 },
+        { "item": "용의역린",       "rate": 0.2 },
+        { "item": "유구의열매",     "rate": 0.2 },
+        { "item": "원초의산모",     "rate": 0.2 },
+        { "item": "기기신주",       "rate": 0.2 },
+        { "item": "황성의조각",     "rate": 0.2 }
+      ]
+    },
+    {
+      "event": "산타아비게일",
+      "case": "roulette",
+      "need_tickets": 600,
+      "drops": [
+        { "item": "한고령",       "rate": 2 },
+        { "item": "오로라강",     "rate": 2 },
+        { "item": "잊을수없는재", "rate": 3 },
+        { "item": "마술수액",     "rate": 3 },
+        { "item": "용의송곳니",   "rate": 3 },
+        { "item": "동사과",       "rate": 3 },
+        { "item": "QP",           "rate": 4.53 },
+        { "item": "종화4",        "rate": 25 }
+      ]
+    },
+    {
+      "event": "인드라대시련",
+      "case": "roulette",
+      "need_tickets": 600,
+      "drops": [
+        { "item": "몽환의비늘가루", "rate": 2 },
+        { "item": "대기사훈장",     "rate": 2 },
+        { "item": "황혼의의식검",   "rate": 3 },
+        { "item": "여진화약",       "rate": 3 },
+        { "item": "흉골",           "rate": 3 },
+        { "item": "동사과",         "rate": 3 },
+        { "item": "QP",             "rate": 4.53 },
+        { "item": "종화4",          "rate": 25 }
+      ]
+    }
+  ]
+}

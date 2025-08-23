@@ -1,112 +1,217 @@
-# filename: calc_event_eff.py
 # -*- coding: utf-8 -*-
 """
-룰렛/박스/레이드 이벤트 효율 계산기 + 시뮬레이터 (사과 하드코딩 + 트리거형 파일 로그)
+FGO 이벤트 주회 시뮬레이터 (Pro v2.5 — 전체 주석/정렬/정밀 출력/표 렌더 개선 + 아이템명 검증)
+=============================================================================================
 
-핵심 포인트
-- "트리거 시점"에만 로그를 남겨 로그 폭증 방지:
-  1) 스테이지(이벤트) 변경 시
-  2) 어떤 재료의 부족(lack)이 0 달성되는 순간
-  3) 룰렛 예장(CE) 기대 드랍 집계로 보너스 경계 통과/보너스 변화가 있을 때
-- 표 기반 출력(가독성↑) + '룰렛 상태 한 줄 요약' (티켓 누적/필요, 판당 티켓, 환급AP, AP 풀, 예장/보너스)
-- 보너스 12 달성 이후에는 CE 관련 로그는 출력 생략(계산은 계속) — 노이즈 축소
-- 룰렛 요약 줄에 '판당 티켓' 표시
-- 트리거 블록 하나 출력이 끝날 때마다 "빈 줄 2개" 삽입(가독성↑)
+변경 핵심 (v2.5)
+----------------
+- **아이템명 검증 추가**: event_quests.json / event_items.json / rarity_map 등에서
+  참조하는 아이템명이 materials.json의 재료명과 **매칭되지 않으면** 로그 상단에
+  경고 목록으로 알려줍니다(위치 예시 + 유사 이름 제안).
+- 표 렌더 안정화(모호폭 처리/ASCII 스타일/마크다운·CSV 지원)는 v2.4와 동일.
+- 표기 규칙: 일반 로그는 **소수점 2자리**, 최종 재료 현황은 **정수**.
 
-추가 기능
-- 런 전체 종료 후 "실제 주행 순서"대로 이벤트별 연속 주행 구간(세션) 요약:
-  (1) 콘솔 출력
-  (2) 로그 파일 제일 앞에 프리펜드(삽입)
-  예) 산타네모 → 관위대관전 → 산타네모  → 요약 3줄
-- 로그 마지막에 "최종 재료 현황" 표(목표/획득/부족) 출력
-  * 목표: 시작 시점의 부족치(lack 초기값)
-  * 획득: 시뮬 동안 기대 획득 누계
-  * 부족: 종료 시점의 남은 부족치(=실시간 lack)
+입력 파일 스키마(요지)
+----------------------
+- materials.json
+  - materials: [{item, tier, ap_per_item, have, need, lack, use}, ...]  ← **정렬 기준**
+  - rarity_map: {gold:[..], silver:[..], bronze:[..]}
+- event_quests.json
+  - event_quests: [
+      {event, case ∈ {"roulette","box","raid"},
+       stages: [
+         {stage, diff, drops: [{item, rate}, ...],
+          tickets?: {base, per_ce}, ce_drop_rate?,
+          box?: {gold/silver/bronze:{base}, items/contents?}
+         }, ...
+       ],
+       ce_drop_rate?, box_contents?
+      }, ...
+    ]
+- event_items.json
+  - event_items: [{event, case, need_tickets?, drops, exchanges?}, ...]
+    (또는 동일 키를 event_quests로 갖는 변형을 헨들링)
 """
 
 import json
 import argparse
+import unicodedata
+import difflib
 from typing import Dict, List, Tuple, Optional
 
-# -------------------- 상수 --------------------
-# 사과 한 알당 AP 환산값 (게임 내 일반적인 체력환산)
-APPLE_AP_POOL = {"gold": 145.0, "silver": 73.0, "blue": 40.0, "copper": 10.0}
+# =============================================================================
+# 상수/전역 설정
+# =============================================================================
 
-# ===== 사용자 편집(하드코딩) =====
-# 대량 시뮬 목적으로 기본값은 크게 둠. 필요 시 수정.
-APPLE_COUNTS = {"gold": 237, "silver": 295, "blue": 1426, "copper": 502}
+APPLE_AP_BY_POOL = {"gold": 145.0, "silver": 73.0, "blue": 40.0, "copper": 10.0}
+APPLE_NAME_TO_POOL = {"금사과": "gold", "은사과": "silver", "청사과": "blue", "동사과": "copper"}
+APPLE_ITEM_NAMES = set(APPLE_NAME_TO_POOL.keys())
+APPLE_COUNTS = {"gold": 1000, "silver": 295, "blue": 2000, "copper": 502}
 NATURAL_AP = 0.0
-# ================================
 
-# -------------------- IO --------------------
+RARITY_MAP: Optional[Dict[str, set]] = None
+
+# 정렬 인덱스 — materials.json의 materials 배열 "등장 순서" 기반
+ITEM_SORT_INDEX: Dict[str, int] = {}   # 재료명 → 등장순 인덱스
+TIER_ORDER_INDEX: Dict[str, int] = {}  # tier명 → 등장순 인덱스
+ITEM_TO_TIER: Dict[str, str] = {}      # 재료명 → tier
+
+# 룰렛 예장(CE) 관련
+CE_BASE_BONUS = 7
+CE_MAX_BONUS = 12
+CE_COPIES_PER_PLUS = 4
+CE_STATE: Dict[str, dict] = {}
+
+# 선택 기능: 이벤트명 부분 포함 시 1판당 고정 수익
+SPECIAL_PER_RUN_YIELDS = {}
+
+# 현재 판(run) 변동 기록
+CURRENT_RUN_GAINS: Optional[Dict[str, float]] = None
+_AGT_CALL_DEPTH = 0
+
+# 출력/표 스타일
+TABLE_FORMAT = "text"      # "text" | "md" | "csv"
+TABLE_STYLE  = "box"       # 텍스트 표일 때: 'box' | 'ascii'
+AMBIGUOUS_WIDE = False     # 모호폭(A) 폭=2로 처리할지 여부
+ARROW  = "→"               # 호환 모드에서 '->'로 변경 가능
+BULLET = "·"               # 호환 모드에서 '-'로 변경 가능
+
+BOX_CHARS   = {"top":("┌","┬","┐"), "mid":("├","┼","┤"), "bot":("└","┴","┘"), "h":"─", "v":"│"}
+ASCII_CHARS = {"top":("+","+","+"), "mid":("+","+","+"), "bot":("+","+","+"), "h":"-", "v":"|"}
+
+# =============================================================================
+# 숫자 포맷 & 공통 유틸
+# =============================================================================
+
+def r2(x: float) -> float:
+    """float → 소수점 2자리 반올림 숫자"""
+    return round(float(x), 2)
+
+def f2(x: float) -> str:
+    """float → '1,234.56' 포맷 문자열"""
+    return f"{float(x):,.2f}"
+
+def f2s(x) -> str:
+    """float → '∞' 처리 포함 2자리 포맷 문자열"""
+    try:
+        if x == float("inf") or str(x).lower() == "inf":
+            return "∞"
+        return f2(float(x))
+    except Exception:
+        return str(x)
+
+def f0(x) -> str:
+    """float → 정수 반올림 '1,234' 포맷 문자열"""
+    try:
+        return f"{int(round(float(x))):,}"
+    except Exception:
+        return str(x)
+
 def load_json(path: str) -> dict:
-    """UTF-8 JSON 로드(단순 래퍼). 파일 구조 검증은 상위 로직에서 수행."""
+    """경로에서 UTF-8 JSON 로드"""
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
+# =============================================================================
+# CJK 폭 인지 길이 계산
+# =============================================================================
+
+try:
+    from wcwidth import wcswidth as _lib_wcswidth  # type: ignore
+    def _display_width(s: str) -> int:
+        """wcwidth 라이브러리가 있으면 사용"""
+        return _lib_wcswidth(s)
+except Exception:
+    def _display_width(s: str) -> int:
+        """동아시아 폭(F/W/A) 고려한 폭 계산(대체 구현)"""
+        width = 0
+        for ch in s:
+            if unicodedata.combining(ch):
+                continue
+            ea = unicodedata.east_asian_width(ch)
+            if ea in ("F", "W") or (ea == "A" and AMBIGUOUS_WIDE):
+                width += 2
+            else:
+                width += 1
+        return width
+
+# =============================================================================
+# materials.json → 인덱스/희귀도/정렬 초기화
+# =============================================================================
+
 def to_material_index(materials_json: dict) -> Dict[str, dict]:
-    """
-    materials.json -> {item: {ap, lack, use}} 인덱스 빌드
-    Parameters
-    ----------
-    materials_json: dict
-        {"materials":[{"item":..,"ap_per_item":..,"lack":..,"use":"Y|N"}, ...]}
-    Returns
-    -------
-    Dict[str, dict]
-        {아이템명: {"ap":float, "lack":float, "use":bool}}
-    Notes
-    -----
-    - ap: 아이템 1개당 AP 가치(사용자 제공 수치)
-    - lack: 현재 부족 수량(목표치)
-    - use: 계산 포함 여부. 'N'이면 효율/획득/부족에서 제외
-    """
-    idx: Dict[str, dict] = {}
+    """materials 배열 → {이름:{ap,lack,use}} 인덱스 구성"""
+    index: Dict[str, dict] = {}
     for m in materials_json.get("materials", []):
         name = str(m.get("item") or "").strip()
         if not name:
             continue
         ap_raw = m.get("ap_per_item")
         lack_raw = m.get("lack")
-        idx[name] = {
+        index[name] = {
             "ap": float(ap_raw) if ap_raw is not None else 0.0,
             "lack": float(lack_raw) if lack_raw is not None else 0.0,
             "use": str(m.get("use") or "Y").upper() == "Y",
         }
-    return idx
+    return index
 
-# ----------------- 숫자/재료 helpers -----------------
-def r2(x: float) -> float:
-    """float → 소수 2자리 반올림 숫자(내부 계산 표시용)."""
-    return round(float(x), 2)
+def init_rarity_map_from_materials(materials_json: dict) -> None:
+    """rarity_map(gold/silver/bronze) 초기화"""
+    global RARITY_MAP
+    rm = materials_json.get("rarity_map")
+    if isinstance(rm, dict):
+        RARITY_MAP = {
+            "gold":   set(str(x) for x in rm.get("gold", [])   if x),
+            "silver": set(str(x) for x in rm.get("silver", []) if x),
+            "bronze": set(str(x) for x in rm.get("bronze", []) if x),
+        }
+    else:
+        RARITY_MAP = {"gold": set(), "silver": set(), "bronze": set()}
 
-def f2(x: float) -> str:
-    """float → '1,234.56' 형식 문자열."""
-    return f"{float(x):,.2f}"
+def init_sort_index_from_materials(materials_json: dict) -> None:
+    """정렬용: materials 등장 순서/티어 순서 테이블 구성"""
+    global ITEM_SORT_INDEX, TIER_ORDER_INDEX, ITEM_TO_TIER
+    ITEM_SORT_INDEX = {}
+    TIER_ORDER_INDEX = {}
+    ITEM_TO_TIER = {}
+    for i, m in enumerate(materials_json.get("materials", [])):
+        name = str(m.get("item") or "").strip()
+        tier = str(m.get("tier") or "").strip()
+        if not name:
+            continue
+        if name not in ITEM_SORT_INDEX:
+            ITEM_SORT_INDEX[name] = i
+        ITEM_TO_TIER[name] = tier
+        if tier and tier not in TIER_ORDER_INDEX:
+            TIER_ORDER_INDEX[tier] = len(TIER_ORDER_INDEX)
 
-def f2s(x) -> str:
-    """∞ 처리 포함 포맷."""
-    try:
-        if x == float("inf") or str(x).lower() == "inf":
-            return "∞"
-        return f2(float(x))
-    except:
-        return str(x)
+def default_rarity_map() -> Dict[str, set]:
+    return RARITY_MAP if RARITY_MAP is not None else {"gold": set(), "silver": set(), "bronze": set()}
 
-def mat_rec(item, mats):
-    """재료 dict 안전 접근."""
-    return mats.get(item)
+def classify_rarity(item: str, rarity_map: Dict[str, set]) -> Optional[str]:
+    """아이템을 rarity_map 기준으로 gold/silver/bronze 중 하나로 분류"""
+    for rarity in ("gold", "silver", "bronze"):
+        if item in rarity_map[rarity]:
+            return rarity
+    return None
 
-def mat_ap(item: str, mats: Dict[str, dict], respect_use_flag: bool=True) -> float:
-    """
-    '효율 계산용' AP 가치 반환.
-    Rules
-    -----
-    - use=False 이면 0
-    - lack<=0(포화) 이면 0
-    - 그 외 ap 반환
-    """
-    rec = mat_rec(item, mats)
+def _material_sort_key(name: str):
+    """정렬키: materials 등장순 → 티어순 → 이름"""
+    idx = ITEM_SORT_INDEX.get(name, 10**9)
+    tier = ITEM_TO_TIER.get(name, "")
+    to = TIER_ORDER_INDEX.get(tier, 10**9)
+    return (idx, to, name)
+
+# =============================================================================
+# 재료 상태 조회/갱신
+# =============================================================================
+
+def mat_rec(item: str, materials_index: Dict[str, dict]) -> Optional[dict]:
+    return materials_index.get(item)
+
+def mat_ap(item: str, materials_index: Dict[str, dict], respect_use_flag: bool=True) -> float:
+    """아이템 1개당 AP가치(부족>0 & use=Y일 때만 유효)"""
+    rec = mat_rec(item, materials_index)
     if not rec:
         return 0.0
     if respect_use_flag and not rec.get("use", True):
@@ -115,125 +220,221 @@ def mat_ap(item: str, mats: Dict[str, dict], respect_use_flag: bool=True) -> flo
         return 0.0
     return float(rec.get("ap") or 0.0)
 
-def mat_lack(item: str, mats: Dict[str, dict]) -> float:
-    """현재 부족치(lack) 조회(없으면 0)."""
-    rec = mat_rec(item, mats)
+def mat_lack(item: str, materials_index: Dict[str, dict]) -> float:
+    rec = mat_rec(item, materials_index)
     return float(rec["lack"]) if rec else 0.0
 
-def mat_usable(item: str, mats: Dict[str, dict]) -> bool:
-    """use 플래그 조회(없으면 True 가정)."""
-    rec = mat_rec(item, mats)
+def mat_usable(item: str, materials_index: Dict[str, dict]) -> bool:
+    rec = mat_rec(item, materials_index)
     return (rec["use"] if rec is not None else True)
 
-def snapshot_lack(mats: Dict[str, dict], respect_use_flag: bool=True) -> Dict[str, float]:
-    """
-    현재 lack 스냅샷(표/비교용).
-    - use=False는 제외(옵션)
-    """
+def snapshot_lack(materials_index: Dict[str, dict], respect_use_flag: bool=True) -> Dict[str, float]:
+    """현재 부족량 스냅샷(정렬/표시용)"""
     return {
-        n: float(r.get("lack") or 0.0)
-        for n, r in mats.items()
-        if not (respect_use_flag and not r.get("use", True))
+        name: float(rec.get("lack") or 0.0)
+        for name, rec in materials_index.items()
+        if not (respect_use_flag and not rec.get("use", True))
     }
 
-# ----------------- 표 유틸(출력 가독성) -----------------
+# =============================================================================
+# (신규) 아이템명 검증
+# =============================================================================
+
+def _iter_item_blocks(items_def: dict) -> List[dict]:
+    if isinstance(items_def.get("event_items"), list):
+        return items_def["event_items"]
+    if isinstance(items_def.get("event_quests"), list):
+        return items_def["event_quests"]
+    return []
+
+def _collect_from_box_contents(container: dict, where: str, report):
+    """container: {"gold":[{item,..}], "silver":[..], "bronze":[..]}"""
+    if not isinstance(container, dict):
+        return
+    for rar in ("gold", "silver", "bronze"):
+        for ent in (container.get(rar) or []):
+            item = str((ent or {}).get("item") or "").strip()
+            if item:
+                report(item, f"{where}/box:{rar}")
+
+def validate_item_names(materials_index: Dict[str, dict], quests_def: dict, items_def: dict) -> Dict[str, List[str]]:
+    """
+    외부 JSON들이 참조하는 아이템명이 materials.json에 존재하는지 검증.
+
+    Returns:
+        {unknown_item: [위치 예시,...]}  (최대 5곳까지 샘플링)
+    """
+    known = set(materials_index.keys()) | APPLE_ITEM_NAMES | {"교환티켓"}
+    unknown: Dict[str, List[str]] = {}
+
+    def report(name: str, where: str):
+        if not name:
+            return
+        n = name.strip()
+        if n in known:
+            return
+        # 아직 모르는 이름이면 위치 누적(최대 5개)
+        lst = unknown.setdefault(n, [])
+        if len(lst) < 5 and where not in lst:
+            lst.append(where)
+
+    # 1) rarity_map 내 이름도 검사(오타 방지)
+    rmap = default_rarity_map()
+    for rar in ("gold", "silver", "bronze"):
+        for nm in rmap.get(rar, []):
+            if nm not in known:
+                report(nm, f"materials.rarity_map.{rar}")
+
+    # 2) quests_def 검사
+    for e in quests_def.get("event_quests", []):
+        ev = str(e.get("event") or "").strip()
+        cs = str(e.get("case") or "").lower()
+        # drops
+        for st in e.get("stages", []):
+            stg = str(st.get("stage") or "").strip()
+            dff = str(st.get("diff") or "").strip()
+            for d in st.get("drops", []):
+                item = str(d.get("item") or "").strip()
+                if item:
+                    report(item, f"event_quests/{ev}/{cs}/{stg}[{dff}]/drops")
+            # stage-level box contents(items/contents)
+            box = st.get("box") or {}
+            for key in ("items", "contents"):
+                if key in box and isinstance(box[key], dict):
+                    _collect_from_box_contents(box[key], f"event_quests/{ev}/{cs}/{stg}[{dff}]", report)
+        # event-level box_contents
+        if isinstance(e.get("box_contents"), dict):
+            _collect_from_box_contents(e["box_contents"], f"event_quests/{ev}/{cs}", report)
+
+    # quests_def top-level box_contents (있다면)
+    if isinstance(quests_def.get("box_contents"), dict):
+        _collect_from_box_contents(quests_def["box_contents"], "event_quests/top", report)
+
+    # 3) items_def 검사
+    for blk in _iter_item_blocks(items_def):
+        ev = str(blk.get("event") or "").strip()
+        cs = str(blk.get("case") or "").lower()
+        for d in blk.get("drops", []):
+            item = str(d.get("item") or "").strip()
+            if item:
+                report(item, f"event_items/{ev}/{cs}/drops")
+        for ex in blk.get("exchanges", []) or []:
+            for opt in (ex.get("options") or []):
+                item = str(opt or "").strip()
+                if item:
+                    report(item, f"event_items/{ev}/{cs}/exchanges")
+        # box case의 drops도 검사
+        if cs == "box":
+            for d in blk.get("drops", []):
+                item = str(d.get("item") or "").strip()
+                if item:
+                    report(item, f"event_items/{ev}/{cs}/box_drops")
+
+    return unknown
+
+# =============================================================================
+# 표 출력 (text/md/csv)
+# =============================================================================
+
 def _draw_line(widths, left="┌", mid="┬", right="┐", fill="─"):
-    s = [left]
+    parts = [left]
     for i, w in enumerate(widths):
-        s.append(fill * (w + 2))
-        s.append(mid if i < len(widths) - 1 else right)
-    return "".join(s)
+        parts.append(fill * (w + 2))
+        parts.append(mid if i < len(widths) - 1 else right)
+    return "".join(parts)
 
-def _fmt_cell(text, width, align="left"):
+def _pad_cell(text: str, width: int, align: str) -> str:
     t = str(text)
+    display = _display_width(t)
+    pad = max(0, width - display)
     if align == "right":
-        return " " + t.rjust(width) + " "
+        return " " + (" " * pad + t) + " "
     if align == "center":
-        return " " + t.center(width) + " "
-    return " " + t.ljust(width) + " "
+        left = pad // 2; right = pad - left
+        return " " + (" " * left + t + " " * right) + " "
+    return " " + (t + " " * pad) + " "
 
-def _print_table(w, headers, rows, aligns=None):
-    """
-    간단한 테이블 렌더러(로그/콘솔 공용).
-    Parameters
-    ----------
-    w : Callable[[str], None]
-        출력 함수(Logger.write 등)
-    headers : List[str]
-    rows : List[List[Any]]
-    aligns : Optional[List['left'|'right'|'center']]
-    """
-    widths = [
-        max(len(str(h)), max((len(str(r[i])) for r in rows), default=0))
-        for i, h in enumerate(headers)
-    ]
+def _print_table_text(write_line, headers, rows, aligns=None):
     if aligns is None:
         aligns = ["left"] * len(headers)
-    w(_draw_line(widths, "┌", "┬", "┐"))
-    w("│" + "│".join(_fmt_cell(h, widths[i], "center") for i, h in enumerate(headers)) + "│")
-    w(_draw_line(widths, "├", "┼", "┤"))
+    chars = BOX_CHARS if TABLE_STYLE == "box" else ASCII_CHARS
+    v = chars["v"]
+    widths = []
+    for col in range(len(headers)):
+        maxw = _display_width(str(headers[col]))
+        for r in rows:
+            maxw = max(maxw, _display_width(str(r[col])))
+        widths.append(maxw)
+    write_line(_draw_line(widths, *chars["top"], fill=chars["h"]))
+    write_line(v + v.join(_pad_cell(str(h), widths[i], "center") for i, h in enumerate(headers)) + v)
+    write_line(_draw_line(widths, *chars["mid"], fill=chars["h"]))
     for r in rows:
-        w("│" + "│".join(_fmt_cell(r[i], widths[i], aligns[i]) for i in range(len(headers))) + "│")
-    w(_draw_line(widths, "└", "┴", "┘"))
+        write_line(v + v.join(_pad_cell(str(r[i]), widths[i], aligns[i]) for i in range(len(headers))) + v)
+    write_line(_draw_line(widths, *chars["bot"], fill=chars["h"]))
 
-def _print_gain_table(w, current_gains: Dict[str, float],
+def _print_table_md(write_line, headers, rows, aligns=None):
+    if aligns is None:
+        aligns = ["left"] * len(headers)
+    write_line("| " + " | ".join(str(h) for h in headers) + " |")
+    align_map = {"left": ":---", "right": "---:", "center": ":---:"}
+    write_line("| " + " | ".join(align_map.get(a, ":---") for a in aligns) + " |")
+    for r in rows:
+        write_line("| " + " | ".join(str(c) for c in r) + " |")
+
+def _csv_escape(s: str) -> str:
+    s = str(s)
+    if any(ch in s for ch in [",", "\"", "\n", "\r"]):
+        return "\"" + s.replace("\"", "\"\"") + "\""
+    return s
+
+def _print_table_csv(write_line, headers, rows, aligns=None):
+    write_line(",".join(_csv_escape(h) for h in headers))
+    for r in rows:
+        write_line(",".join(_csv_escape(c) for c in r))
+
+def _print_table(write_line, headers, rows, aligns=None):
+    if TABLE_FORMAT == "md":
+        _print_table_md(write_line, headers, rows, aligns)
+    elif TABLE_FORMAT == "csv":
+        _print_table_csv(write_line, headers, rows, aligns)
+    else:
+        _print_table_text(write_line, headers, rows, aligns)
+
+def _print_gain_table(write_line, current_gains: Dict[str, float],
                       lack_before: Dict[str, float],
                       lack_after: Dict[str, float],
                       cum_gained: Dict[str, float]):
-    """
-    이번 판 획득 내역 표.
-    Columns
-    -------
-    항목 | +획득(이번 판 기대) | 누적(전체 기대) | 부족(전→후)
-    """
     if not current_gains:
-        w("  (변동 없음)")
+        write_line("  (변동 없음)")
         return
     headers = ["항목", "+획득", "누적", "부족(전→후)"]
+    names_sorted = sorted(current_gains.keys(), key=_material_sort_key)
     rows = []
-    for name, gained in sorted(current_gains.items(), key=lambda x: x[1], reverse=True):
+    for name in names_sorted:
+        gained = current_gains.get(name, 0.0)
         b = lack_before.get(name, 0.0)
         a = lack_after.get(name, 0.0)
         total = cum_gained.get(name, 0.0)
-        rows.append([name, f2(gained), f2(total), f"{f2(b)} → {f2(a)}"])
-    _print_table(w, headers, rows, aligns=["left", "right", "right", "right"])
+        rows.append([name, f2(gained), f2(total), f"{f2(b)} {ARROW} {f2(a)}"])
+    _print_table(write_line, headers, rows, aligns=["left", "right", "right", "right"])
 
-def _print_eff_table(w, bests: List[dict], ap_cost_per_run: float):
-    """
-    현재 이벤트별 최적 효율 테이블.
-    Columns
-    -------
-    이벤트 | 케이스 | 스테이지[난이도] | stage/AP | roulette/AP | total/AP
-    Notes
-    -----
-    - raid는 roulette/AP가 없으므로 '-' 처리
-    """
-    headers = ["이벤트", "케이스", "스테이지[난이도]", "stage/AP", "roulette/AP", "total/AP"]
+def _print_eff_table(write_line, best_list: List[dict], ap_cost_per_run: float):
+    headers = ["이벤트", "스테이지[난이도]", "total/AP"]
     rows = []
-    for b in bests:
-        ev = b.get("event"); cs = b.get("case"); st = b.get("stage"); df = b.get("diff")
-        if cs == "roulette":
-            rows.append([ev, cs, f"{st} [{df}]",
-                         f2s(b.get("stage_eff_per_ap", 0.0)),
-                         f2s(b.get("roulette_eff", 0.0)),
-                         f2s(b.get("total_eff", 0.0))])
-        elif cs == "box":
-            stage_val = float(b.get("stage_val_per_run") or 0.0)
-            box_val = float(b.get("box_val_per_run") or 0.0)
-            stage_eff = (stage_val / ap_cost_per_run) if ap_cost_per_run > 0 else 0.0
-            box_eff = (box_val / ap_cost_per_run) if ap_cost_per_run > 0 else 0.0
-            rows.append([ev, cs, f"{st} [{df}]", f2s(stage_eff), f2s(box_eff), f2s(stage_eff + box_eff)])
-        else:  # raid
-            stage_eff = float(b.get("stage_eff_per_ap") or 0.0)
-            rows.append([ev, cs, f"{st} [{df}]", f2s(stage_eff), "-", f2s(stage_eff)])
-    _print_table(w, headers, rows, aligns=["left", "center", "left", "right", "right", "right"])
+    for b in best_list:
+        ev = b.get("event")
+        st = b.get("stage")
+        df = b.get("diff")
+        total_eff = b.get("total_eff", 0.0)
+        rows.append([ev, f"{st} [{df}]", f2s(total_eff)])
+    _print_table(write_line, headers, rows, aligns=["left", "left", "right"])
 
-# ----------------- 로깅 & 특수 처리 -----------------
-CURRENT_RUN_GAINS: Optional[Dict[str, float]] = None  # 이번 판 획득 집계(로그용)
-_AGT_CALL_DEPTH = 0  # apply_gain_and_track 재진입 가드(안전)
+# =============================================================================
+# 로깅
+# =============================================================================
 
 class Logger:
-    """파일 + (옵션)콘솔 동시 출력. tee=False면 파일만."""
+    """파일에 기록(선택적으로 콘솔 동시 출력)"""
     def __init__(self, filepath: str, tee: bool=False):
         self.filepath = filepath
         self.tee = tee
@@ -249,33 +450,26 @@ class Logger:
         except Exception:
             pass
 
-def apply_gain_and_track(item: str, qty: float, mats: Dict[str, dict],
-                         cum: Dict[str, float], respect_use_flag: bool=True) -> None:
+# =============================================================================
+# 획득 반영 (누적/부족 감소/변동 기록)
+# =============================================================================
+
+def apply_gain_and_track(item: str, qty: float, materials_index: Dict[str, dict],
+                         cum_gained: Dict[str, float], respect_use_flag: bool=True) -> None:
     """
-    획득 적용 + 누적 갱신 + 이번 판 집계.
-    Parameters
-    ----------
-    item : str
-    qty : float
-        기대 획득량(확률 기대 포함)
-    cum : Dict[str, float]
-        아이템별 누적 획득 기대량 집계 사전
-    Notes
-    -----
-    - 부족(lack) 즉시 차감(0 미만이면 0으로 클램프)
-    - CURRENT_RUN_GAINS: 이번 판 표시에만 사용
-    - 재귀적 호출 방지 위해 전역 가드 사용
+    획득량을 누적/부족에 반영하고, 이번 판 변동 테이블에도 기록한다.
+    (재귀/중첩 호출 방지용 얕은 락 포함)
     """
     global CURRENT_RUN_GAINS, _AGT_CALL_DEPTH
     _AGT_CALL_DEPTH += 1
     try:
         if _AGT_CALL_DEPTH > 1:
-            return  # 재진입 방지
+            return
         if qty > 0:
-            cum[item] = cum.get(item, 0.0) + float(qty)
+            cum_gained[item] = cum_gained.get(item, 0.0) + float(qty)
             if CURRENT_RUN_GAINS is not None:
                 CURRENT_RUN_GAINS[item] = CURRENT_RUN_GAINS.get(item, 0.0) + float(qty)
-        rec = mat_rec(item, mats)
+        rec = mat_rec(item, materials_index)
         if rec is None or (respect_use_flag and not rec.get("use", True)):
             return
         before = float(rec.get("lack") or 0.0)
@@ -284,88 +478,37 @@ def apply_gain_and_track(item: str, qty: float, mats: Dict[str, dict],
     finally:
         _AGT_CALL_DEPTH -= 1
 
-# 이벤트명 부분일치 → 특수 수급(서머어드벤쳐: 15종 각 0.46)
-SPECIAL_PER_RUN_YIELDS = {
-    "서머어드벤쳐": [
-        {"item": it, "qty": 0.46}
-        for it in [
-            "흉골","용의송곳니","여진화약","만사의독침","마술수액","뱀의보옥","소라껍데기","고스트랜턴",
-            "거인의반지","무지갯빛실타래","용의역린","유구의열매","원초의산모","기기신주","황성의조각",
-        ]
-    ]
-}
-
-def _apply_special_per_run_yields(event_name: str, mats: Dict[str, dict],
-                                  cum: Dict[str, float], respect_use_flag: bool=True) -> None:
-    """
-    특정 이벤트(부분일치)에 대해 고정 기대 수급을 매 판 적용.
-    - 예: '서머어드벤쳐' 포함 시 15종 각 0.46 기대치 적용
-    """
+def _apply_special_per_run_yields(event_name: str, materials_index: Dict[str, dict],
+                                  cum_gained: Dict[str, float], respect_use_flag: bool=True) -> None:
+    """특정 이벤트명 포함 시, 고정 per-run 보상 적용(옵션)"""
     for key, yields_ in SPECIAL_PER_RUN_YIELDS.items():
         if key in str(event_name):
             for row in yields_:
-                apply_gain_and_track(str(row["item"]), float(row["qty"]), mats, cum, respect_use_flag)
+                apply_gain_and_track(str(row["item"]), float(row["qty"]),
+                                     materials_index, cum_gained, respect_use_flag)
 
-# ----------------- 박스 분류/가치 -----------------
-def default_rarity_map() -> Dict[str, set]:
-    """박스 이벤트 계산 시 레어도 그룹(합산용)."""
-    gold = {
-        "혼돈의발톱","만신의심장","용의역린","정령근","전마의유각","혈루석","흑수지","봉마의램프",
-        "스카라베","원초의산모","주수담석","기기신주","효광노심","구십구경","진리의알","황성의조각",
-        "유구의열매","도깨비불꽈리","황금가마","월광핵","운명의신성수","유령상",
-    }
-    silver = {
-        "세계수의씨앗","고스트랜턴","팔연쌍정","뱀의보옥","봉황의깃털","무간의톱니바퀴","금단의페이지",
-        "호문클루스","운제철","대기사훈장","소라껍데기","고담곡옥","영원결빙","거인의반지","오로라강",
-        "한고령","재난의화살촉","광은의관","신맥영자","무지갯빛실타래","몽환의비늘가루","태양피",
-        "에테르수광체","최후의꽃","유니버셜 큐브","신체의 렌즈",
-    }
-    bronze = {
-        "영웅의증표","흉골","용의송곳니","허영의먼지","우자의사슬","만사의독침","마술수액",
-        "소곡의철향","여진화약","사면의작은종","황혼의의식검","잊을수없는재","흑요예인","광기의잔재",
-    }
-    return {"gold": gold, "silver": silver, "bronze": bronze}
-
-def classify_rarity(item: str, rarity_map: Dict[str, set]) -> Optional[str]:
-    """아이템명 → 'gold'|'silver'|'bronze'|None"""
-    for r in ("gold", "silver", "bronze"):
-        if item in rarity_map[r]:
-            return r
-    return None
+# =============================================================================
+# 교환권 배분/가치 계산
+# =============================================================================
 
 def allocate_exchange_tokens_ap_first(token_qty: float, per_token: float, options: List[str],
-                                      mats: Dict[str, dict], respect_use_flag: bool=True) -> List[Tuple[str, float]]:
+                                      materials_index: Dict[str, dict], respect_use_flag: bool=True) -> List[Tuple[str, float]]:
     """
-    교환티켓 배분(최대 AP 가치 우선).
-    Parameters
-    ----------
-    token_qty : float
-        티켓 기대 수량(박스 1개 기준 rate × 박스 수)
-    per_token : float
-        티켓 1장당 교환 수량
-    options : List[str]
-        교환 가능 아이템 목록
-    Returns
-    -------
-    List[Tuple[item, qty]]
-        AP 가치가 높은 재료부터 부족치 한계까지 채우도록 배분
-    Notes
-    -----
-    - 포화(lack≤0) 재료는 자동 제외
+    교환티켓을 AP가치가 높은 아이템부터 부족량 한도 내에서 배분한다.
+    Returns: [(아이템, 배분수량), ...]
     """
-    cand = []
+    candidates = []
     for it in options:
-        if not mat_usable(it, mats):
+        if not mat_usable(it, materials_index):
             continue
-        if mat_lack(it, mats) <= 0:
+        if mat_lack(it, materials_index) <= 0:
             continue
-        apv = mat_ap(it, mats, respect_use_flag)
-        cand.append((it, apv, mat_lack(it, mats)))
-    cand.sort(key=lambda x: x[1], reverse=True)  # 가치 높은 순
-
+        apv = mat_ap(it, materials_index, respect_use_flag)
+        candidates.append((it, apv, mat_lack(it, materials_index)))
+    candidates.sort(key=lambda x: x[1], reverse=True)
     remain = token_qty * per_token
-    alloc = []
-    for it, _, lack in cand:
+    allocation = []
+    for it, _, lack in candidates:
         if remain <= 0:
             break
         room = max(lack, 0.0)
@@ -373,62 +516,46 @@ def allocate_exchange_tokens_ap_first(token_qty: float, per_token: float, option
             continue
         take = min(remain, room)
         if take > 0:
-            alloc.append((it, take))
+            allocation.append((it, take))
             remain -= take
-    return alloc
+    return allocation
 
-# ----------------- 데이터 접근 -----------------
-def _iter_item_blocks(items_json: dict) -> List[dict]:
-    """event_items/event_quests/events 어디에 있든 공통 탐색."""
-    if isinstance(items_json.get("event_items"), list):
-        return items_json["event_items"]
-    if isinstance(items_json.get("event_quests"), list):
-        return items_json["event_quests"]
-    if isinstance(items_json.get("events"), list):
-        return items_json["events"]
-    return []
+# =============================================================================
+# 박스/룰렛/스테이지 가치 계산 유틸
+# =============================================================================
 
-def get_items_block(event_name: str, items_json: dict, case: str) -> Optional[dict]:
-    """이벤트명+케이스로 items 블록 검색."""
+def get_items_block(event_name: str, items_def: dict, case: str) -> Optional[dict]:
+    """event_items.json에서 (event, case) 블록 추출"""
     target = str(event_name).strip()
-    for b in _iter_item_blocks(items_json):
+    for b in _iter_item_blocks(items_def):
         if str(b.get("event") or "").strip() == target and str(b.get("case") or "").lower() == case:
             return b
     return None
 
-def extract_need_tickets_from_items(event_name: str, items_json: dict, default: float=600.0) -> float:
-    """룰렛 1박스에 필요한 티켓 수(없으면 기본 600)."""
-    blk = get_items_block(event_name, items_json, case="roulette")
+def extract_need_tickets_from_items(event_name: str, items_def: dict, default: float=600.0) -> float:
+    """룰렛 상자 1회 오픈에 필요한 티켓 수(없으면 기본값)"""
+    blk = get_items_block(event_name, items_def, case="roulette")
     if not blk:
         return default
     try:
         return float(blk.get("need_tickets") or default)
-    except:
+    except Exception:
         return default
 
-def compute_per_box_value_and_refund(event_name: str, items_json: dict, mats: Dict[str, dict],
-                                     respect_use_flag: bool=True,
-                                     apple_ap_map: Dict[str, float]=None) -> Tuple[float, float, List[dict]]:
+def compute_per_box_value_and_refund(event_name: str, items_def: dict, materials_index: Dict[str, dict],
+                                     respect_use_flag: bool=True, apple_ap_map: Dict[str, float]=None) -> Tuple[float, float, List[dict]]:
     """
-    룰렛 1박스 'AP 가치'와 '사과 환급 AP' 산출.
-    Returns
-    -------
-    (per_box_value_ap, apple_refund_ap, details)
-    Notes
-    -----
-    - drops의 일반 재료는 mat_ap로 가치 평가(포화=0)
-    - 교환티켓은 'AP 가치 우선 배분' 시뮬 후 합산
-    - details: 디버그/검증용(현재 화면엔 미표시)  # (미사용 반환값)
+    룰렛 1상자 오픈 시 평균 AP가치와 사과 환급 AP를 계산
+    Returns: (per_box_value, apple_refund_ap, details)
     """
-    apple_ap_map = apple_ap_map or {"금사과":145.0, "은사과":73.0, "청사과":40.0, "동사과":10.0}
-    blk = get_items_block(event_name, items_json, case="roulette")
+    if apple_ap_map is None:
+        apple_ap_map = {k: APPLE_AP_BY_POOL[v] for k, v in APPLE_NAME_TO_POOL.items()}
+    blk = get_items_block(event_name, items_def, case="roulette")
     per_box = 0.0
     refund = 0.0
-    details = []  # (현재 경로에서 실사용 아님)
-
+    details = []
     if not blk:
         return 0.0, 0.0, details
-
     token_name = None
     token_rate = 0.0
     for d in blk.get("drops", []):
@@ -438,156 +565,182 @@ def compute_per_box_value_and_refund(event_name: str, items_json: dict, mats: Di
             continue
         if item in apple_ap_map:
             refund += rate * apple_ap_map[item]
+            continue
         if item == "교환티켓":
             token_name = item
             token_rate = rate
             continue
-        apv = mat_ap(item, mats, respect_use_flag)
+        apv = mat_ap(item, materials_index, respect_use_flag)
         val = apv * rate
         per_box += val
-        details.append({"kind":"drop","item":item,"qty_per_box":rate,"ap_per_item":apv,"ap_value":r2(val)})
-
+        details.append({"kind": "drop", "item": item, "qty_per_box": rate, "ap_per_item": apv, "ap_value": r2(val)})
     if token_name and token_rate > 0:
         for ex in blk.get("exchanges", []):
             if str(ex.get("token")) != token_name:
                 continue
             per_token = float(ex.get("per_token") or 1.0)
             options = [str(x) for x in ex.get("options", []) if x]
-            alloc = allocate_exchange_tokens_ap_first(token_rate, per_token, options, mats, respect_use_flag)
+            alloc = allocate_exchange_tokens_ap_first(token_rate, per_token, options, materials_index, respect_use_flag)
             for it, qty in alloc:
-                apv = mat_ap(it, mats, respect_use_flag)
+                apv = mat_ap(it, materials_index, respect_use_flag)
                 val = apv * qty
                 per_box += val
-                details.append({"kind":"exchange","item":it,"qty":r2(qty),"ap_per_item":apv,"ap_value":r2(val)})
-
+                details.append({"kind": "exchange", "item": it, "qty": r2(qty), "ap_per_item": apv, "ap_value": r2(val)})
     return r2(per_box), r2(refund), details
 
-# ----------------- 스테이지 공통 -----------------
-def tickets_per_run(stage: dict, ce_count: int) -> float:
-    """
-    판당 티켓 기대량 = base + per_ce * (현재 CE 보너스 수치)
-    - ce_count는 7~12 범위의 보너스 정수 그대로 사용
-    """
-    t = stage.get("tickets") or {}
+def tickets_per_run(stage_def: dict, ce_count: int) -> float:
+    """해당 스테이지 1회 클리어 시 얻는 룰렛 티켓 수(CE 보너스 반영)"""
+    t = stage_def.get("tickets") or {}
     return float(t.get("base") or 0.0) + float(t.get("per_ce") or 0.0) * ce_count
 
-def stage_value_per_run(stage_drops: List[dict], mats: Dict[str, dict],
-                        respect_use_flag: bool=True) -> float:
-    """
-    스테이지 일반 드랍의 AP 기대가치 합.
-    - 포화 재료는 0 가치로 평가하여 자동 제외 효과
-    """
+def stage_value_per_run(stage_drops: List[dict], materials_index: Dict[str, dict], respect_use_flag: bool=True) -> float:
+    """스테이지 드랍 기대 AP가치의 합"""
     val = 0.0
     for d in stage_drops:
         item = str(d.get("item") or ""); rate = float(d.get("rate") or 0.0)
         if not item:
             continue
-        val += mat_ap(item, mats, respect_use_flag) * rate
+        val += mat_ap(item, materials_index, respect_use_flag) * rate
     return val
 
-# ----------------- 박스 케이스 -----------------
-def default_rarity_sum(event_name: str, items_json: dict, mats: Dict[str, dict],
+def default_rarity_sum(event_name: str, items_def: dict, materials_index: Dict[str, dict],
                        respect_use_flag: bool=True) -> Tuple[float, float, float, str, List[dict]]:
     """
-    event_items의 박스 구성으로 레어도 합(가치) 계산.
-    Returns
-    -------
-    (gold_sum_ap, silver_sum_ap, bronze_sum_ap, source, dbg_rows)
-    Notes
-    -----
-    - dbg_rows: 디버그 출력용(현재 미표시)  # (미사용 반환값)
+    event_items.json 의 box case 드랍을 rarity_map 기준으로
+    gold/silver/bronze 그룹 AP가치 합으로 환산
     """
-    blk = get_items_block(event_name, items_json, case="box")
+    blk = get_items_block(event_name, items_def, case="box")
     if not blk:
         return 0.0, 0.0, 0.0, "none", []
     rarity_map = default_rarity_map()
-    sg = ss = sb = 0.0
+    sum_gold = sum_silver = sum_bronze = 0.0
     dbg = []
     for d in blk.get("drops", []):
         item = str(d.get("item") or ""); rate = float(d.get("rate") or 0.0)
         if not item:
             continue
-        apv = mat_ap(item, mats, respect_use_flag)
+        apv = mat_ap(item, materials_index, respect_use_flag)
         rar = classify_rarity(item, rarity_map)
         val = apv * rate
-        if rar == "gold":   sg += val
-        elif rar == "silver": ss += val
-        elif rar == "bronze": sb += val
+        if rar == "gold":   sum_gold += val
+        elif rar == "silver": sum_silver += val
+        elif rar == "bronze": sum_bronze += val
         dbg.append({"item": item, "rarity": rar or "?", "rate": rate, "ap_per_item": apv, "ap_value": r2(val)})
-    return r2(sg), r2(ss), r2(sb), "event_items", dbg
+    return r2(sum_gold), r2(sum_silver), r2(sum_bronze), "event_items", dbg
 
-def _fetch_box_contents(stage: dict, event_block: dict, quests_json: dict) -> Dict[str, List[dict]]:
-    """
-    스테이지 정의/이벤트 정의/최상위 정의 순서로 box contents 조회.
-    우선순위: stage.box.items → stage.box.contents → event.box_contents → quests.box_contents
-    """
-    box = stage.get("box") or {}
+def _fetch_box_contents(stage_def: dict, event_block: dict, quests_def: dict) -> Dict[str, List[dict]]:
+    """event_quests에서 box contents 우선 추출(스테이지→이벤트→최상위)"""
+    box = stage_def.get("box") or {}
     if isinstance(box.get("items"), dict):
         return box["items"]
     if isinstance(box.get("contents"), dict):
         return box["contents"]
     if isinstance(event_block.get("box_contents"), dict):
         return event_block["box_contents"]
-    if isinstance(quests_json.get("box_contents"), dict):
-        return quests_json["box_contents"]
+    if isinstance(quests_def.get("box_contents"), dict):
+        return quests_def["box_contents"]
     return {}
 
-def _rarity_sum_ap(lst: List[dict], mats: Dict[str, dict], respect_use_flag: bool=True) -> float:
-    """contents 기반 레어도 묶음의 AP 합(포화=0)."""
+def _rarity_sum_ap(lst: List[dict], materials_index: Dict[str, dict], respect_use_flag: bool=True) -> float:
+    """한 rarity 그룹의 항목 리스트 → AP가치 합"""
+    if not lst:
+        return 0.0
     total = 0.0
+    has_qty = any('qty_per_box' in (x or {}) for x in lst)
+    has_rate = any('rate' in (x or {}) for x in lst)
+    n = len(lst)
     for x in lst or []:
-        item = str(x.get("item") or ""); qty = float(x.get("qty_per_box") or 0.0)
-        total += mat_ap(item, mats, respect_use_flag) * qty
+        item = str((x or {}).get("item") or "")
+        if not item:
+            continue
+        if has_qty:
+            qty = float((x or {}).get("qty_per_box") or 0.0)
+        elif has_rate:
+            qty = float((x or {}).get("rate") or 0.0)
+        else:
+            qty = 1.0 / n if n > 0 else 0.0
+        total += mat_ap(item, materials_index, respect_use_flag) * qty
     return total
 
-def compute_box_event_best_stage(event_name: str, quests_json: dict, items_json: dict,
-                                 mats: Dict[str, dict], ap_cost_per_run: float, prefer_diff: Optional[str],
-                                 respect_use_flag: bool=True) -> Optional[dict]:
+def _build_box_contents_from_items_json(event_name: str, items_def: dict) -> Dict[str, List[dict]]:
     """
-    BOX 케이스: 스테이지별 (스테이지가치+박스가치)/AP 최대 후보 선택.
-    - stage.contents가 있으면 그것을 우선 사용, 없으면 event_items로 추정
+    event_items.json 만으로 gold/silver/bronze 그룹을 구성(스테이지 정의에 없을 때 fallback)
     """
-    events = quests_json.get("event_quests", [])
+    blk = get_items_block(event_name, items_def, case="box")
+    if not blk:
+        return {}
+    rarity_map = default_rarity_map()
+    groups = {"gold": [], "silver": [], "bronze": []}
+    for d in blk.get("drops", []):
+        item = str(d.get("item") or "").strip()
+        if not item:
+            continue
+        rar = classify_rarity(item, rarity_map)
+        if rar not in ("gold", "silver", "bronze"):
+            continue
+        entry = {"item": item}
+        if "qty_per_box" in d:
+            try:
+                entry["qty_per_box"] = float(d.get("qty_per_box") or 0.0)
+            except Exception:
+                entry["qty_per_box"] = 0.0
+        elif "rate" in d:
+            try:
+                entry["rate"] = float(d.get("rate") or 0.0)
+            except Exception:
+                entry["rate"] = 0.0
+        groups[rar].append(entry)
+    for rar in ("gold", "silver", "bronze"):
+        lst = groups[rar]
+        if not lst:
+            continue
+        has_qty = any("qty_per_box" in x for x in lst)
+        has_rate = any("rate" in x for x in lst)
+        if not has_qty and not has_rate:
+            n = len(lst)
+            for x in lst:
+                x["rate"] = 1.0 / n if n > 0 else 0.0
+    return groups
+
+def compute_box_event_best_stage(event_name: str, quests_def: dict, items_def: dict,
+                                 materials_index: Dict[str, dict], ap_cost_per_run: float,
+                                 prefer_diff: Optional[str], respect_use_flag: bool=True) -> Optional[dict]:
+    """박스 이벤트에서 스테이지별 (스테이지드랍+박스가치)/AP 최댓값 선택"""
+    events = quests_def.get("event_quests", [])
     candidates = []
     for e in events:
         if str(e.get("event") or "") != event_name or str(e.get("case") or "").lower() != "box":
             continue
         for st in e.get("stages", []):
-            stage_val = stage_value_per_run(st.get("drops", []), mats, respect_use_flag)
+            stage_val = stage_value_per_run(st.get("drops", []), materials_index, respect_use_flag)
             box = st.get("box") or {}
             base_gold = float((box.get("gold") or {}).get("base", 0.0))
             base_silver = float((box.get("silver") or {}).get("base", 0.0))
             base_bronze = float((box.get("bronze") or {}).get("base", 0.0))
-
-            contents = _fetch_box_contents(st, e, quests_json)
+            contents = _fetch_box_contents(st, e, quests_def)
             dbg_rows = []; source = ""
             if contents:
-                sum_gold = _rarity_sum_ap(contents.get("gold", []), mats, respect_use_flag)
-                sum_silver = _rarity_sum_ap(contents.get("silver", []), mats, respect_use_flag)
-                sum_bronze = _rarity_sum_ap(contents.get("bronze", []), mats, respect_use_flag)
+                sum_gold = _rarity_sum_ap(contents.get("gold", []), materials_index, respect_use_flag)
+                sum_silver = _rarity_sum_ap(contents.get("silver", []), materials_index, respect_use_flag)
+                sum_bronze = _rarity_sum_ap(contents.get("bronze", []), materials_index, respect_use_flag)
                 source = "stage.contents"
             else:
-                sg, ss, sb, src, dbg = default_rarity_sum(event_name, items_json, mats, respect_use_flag)
+                sg, ss, sb, src, dbg = default_rarity_sum(event_name, items_def, materials_index, respect_use_flag)
                 sum_gold, sum_silver, sum_bronze = sg, ss, sb
                 source = src
-                dbg_rows = dbg  # (미사용 반환값)
-
+                dbg_rows = dbg
             box_val = sum_gold * base_gold + sum_silver * base_silver + sum_bronze * base_bronze
             total_eff = (stage_val + box_val) / ap_cost_per_run if ap_cost_per_run > 0 else 0.0
-
             candidates.append({
                 "stage": st.get("stage"), "diff": st.get("diff"),
                 "stage_val_per_run": r2(stage_val), "box_val_per_run": r2(box_val),
                 "total_eff": r2(total_eff),
-                "details": {
-                    "base": {"gold": base_gold, "silver": base_silver, "bronze": base_bronze},
-                    "sum_ap": {"gold": r2(sum_gold), "silver": r2(sum_silver), "bronze": r2(sum_bronze)},
-                    "source": source, "drops": st.get("drops", []),
-                    "event_items_dbg": dbg_rows,  # (미사용 반환값)
-                }
+                "details": {"base": {"gold": base_gold, "silver": base_silver, "bronze": base_bronze},
+                            "sum_ap": {"gold": r2(sum_gold), "silver": r2(sum_silver), "bronze": r2(sum_bronze)},
+                            "source": source, "drops": st.get("drops", []),
+                            "event_items_dbg": dbg_rows}
             })
         break
-
     if not candidates:
         return None
     if prefer_diff:
@@ -596,110 +749,40 @@ def compute_box_event_best_stage(event_name: str, quests_json: dict, items_json:
             return max(pref, key=lambda x: float(x["total_eff"]))
     return max(candidates, key=lambda x: float(x["total_eff"]))
 
-# ----------------- CE(예장) 상태/업데이트 -----------------
-CE_BASE_BONUS = 7
-CE_MAX_BONUS = 12
-CE_COPIES_PER_PLUS = 4  # 4장마다 보너스 +1
-CE_STATE: Dict[str, dict] = {}  # 이벤트별 {"drops_acc": 기대누적(연속), "bonus": 현재보너스}
+def _get_event_block(quests_def: dict, event_name: str, case: str) -> Optional[dict]:
+    for e in quests_def.get("event_quests", []):
+        if str(e.get("event") or "") == event_name and str(e.get("case") or "").lower() == case:
+            return e
+    return None
 
-def _init_ce_state_for_targets(targets):
-    """룰렛 케이스 대상 이벤트에 CE 상태 초기화."""
-    for ev, cs in targets:
-        if cs == "roulette" and ev not in CE_STATE:
-            CE_STATE[ev] = {"drops_acc": 0.0, "bonus": CE_BASE_BONUS}
-
-def _get_ce_bonus(ev: str) -> int:
-    """현재 이벤트의 CE 보너스(7~12)."""
-    st = CE_STATE.get(ev)
-    return int(st["bonus"]) if st else CE_BASE_BONUS
-
-def _get_ce_drop_rate(stage_def: dict, event_block: Optional[dict]) -> float:
-    """예장 기대 드랍확률(소수). 스테이지 우선 → 이벤트 블록 보조."""
-    v = stage_def.get("ce_drop_rate")
-    if v is None and event_block is not None:
-        v = event_block.get("ce_drop_rate")
-    try:
-        return float(v or 0.0)
-    except:
-        return 0.0
-
-def _update_ce_after_run(ev: str, stage_def: dict, event_block: Optional[dict]) -> dict:
-    """
-    1판 주행 후 CE 기대 누적치 업데이트 + 경계/보너스 변화 감지.
-    Returns
-    -------
-    dict: 로깅용 상태(드랍 기대 누적/정수 증가/보너스 증가/다음 경계까지 남은 기대치 등)
-    """
-    if ev not in CE_STATE:
-        return {"p":0.0,"new_drops":0.0,"new_copies_int":0,"gain_int":0,"bonus_inc":0,
-                "new_bonus":_get_ce_bonus(ev),"rem_to_next":0.0}
-    p = _get_ce_drop_rate(stage_def, event_block)
-    prev = CE_STATE[ev]["drops_acc"]; new = prev + p
-
-    prev_floor = int(prev // 1); new_floor = int(new // 1)
-    gain_int = max(0, new_floor - prev_floor)
-
-    prev_steps = int(prev // CE_COPIES_PER_PLUS); new_steps = int(new // CE_COPIES_PER_PLUS)
-    bonus_inc = max(0, new_steps - prev_steps)
-    new_bonus = min(CE_MAX_BONUS, CE_BASE_BONUS + new_steps)
-
-    CE_STATE[ev]["drops_acc"] = new; CE_STATE[ev]["bonus"] = new_bonus
-    next_step_target = (new_steps + 1) * CE_COPIES_PER_PLUS
-    rem_to_next = max(0.0, next_step_target - new)
-
-    return {"p":p,"new_drops":new,"new_copies_int":int(new // 1),"gain_int":gain_int,
-            "bonus_inc":bonus_inc,"new_bonus":new_bonus,"rem_to_next":rem_to_next}
-
-# ----------------- 베스트 계산/선택 -----------------
-def _list_targets(quests_json: dict, event_filter: Optional[str]) -> List[Tuple[str, str]]:
-    """event_quests에서 (이벤트명, 케이스) 타깃 목록 생성(부분일치 필터 적용)."""
-    seen = set(); out = []
-    for e in quests_json.get("event_quests", []):
-        ev = str(e.get("event") or ""); cs = str(e.get("case") or "").lower()
-        if not ev or cs not in ("roulette", "box", "raid"):
-            continue
-        if event_filter and (event_filter not in ev):
-            continue
-        key = (ev, cs)
-        if key not in seen: seen.add(key); out.append(key)
-    return out
-
-def choose_best_stage_by_total_eff_roulette(event_name: str, quests_json: dict, items_json: dict,
+def choose_best_stage_by_total_eff_roulette(event_name: str, quests_def: dict, items_def: dict,
                                             ce_count: int, need_tickets_default: float,
-                                            ap_cost_per_run: float, mats: Dict[str, dict],
+                                            ap_cost_per_run: float, materials_index: Dict[str, dict],
                                             respect_use_flag: bool=True) -> Optional[dict]:
     """
-    룰렛 케이스: (스테이지/AP + 룰렛/AP) 최대 후보 선택.
-    - ce_count: 현 보너스(7~12)를 그대로 인자로 받음
+    룰렛 이벤트: (스테이지드랍/AP + (상자AP가치 / 유효AP상자)) 최댓값 스테이지 선택
     """
-    need_tk = extract_need_tickets_from_items(event_name, items_json, default=need_tickets_default)
-    per_box_value, apple_refund_ap, box_details = compute_per_box_value_and_refund(
-        event_name, items_json, mats, respect_use_flag
-    )
-    # box_details: 디버그용(현재 실사용 아님)
-
-    events = quests_json.get("event_quests", []); candidates = []
+    need_tk = extract_need_tickets_from_items(event_name, items_def, default=need_tickets_default)
+    per_box_value, apple_refund_ap, box_details = compute_per_box_value_and_refund(event_name, items_def, materials_index, respect_use_flag)
+    events = quests_def.get("event_quests", []); candidates = []
     for e in events:
         if str(e.get("event") or "") != event_name or str(e.get("case") or "").lower() != "roulette":
             continue
         for st in e.get("stages", []):
-            tpr = tickets_per_run(st, ce_count)  # 판당 티켓
-            stage_run_val = stage_value_per_run(st.get("drops", []), mats, respect_use_flag)
+            tpr = tickets_per_run(st, ce_count)
+            stage_run_val = stage_value_per_run(st.get("drops", []), materials_index, respect_use_flag)
             stage_eff_per_ap = (stage_run_val / ap_cost_per_run) if ap_cost_per_run > 0 else 0.0
-
             if need_tk > 0 and tpr > 0:
                 runs_per_box = need_tk / tpr
                 gross_ap_per_box = runs_per_box * ap_cost_per_run
                 net_ap_per_box = gross_ap_per_box - apple_refund_ap
             else:
                 net_ap_per_box = 0.0
-
             if net_ap_per_box <= 0:
                 roulette_eff = total_eff = float("inf")
             else:
                 roulette_eff = per_box_value / net_ap_per_box
                 total_eff = stage_eff_per_ap + roulette_eff
-
             candidates.append({
                 "stage": st.get("stage"), "diff": st.get("diff"),
                 "tickets_per_run": r2(tpr), "stage_val_per_run": r2(stage_run_val),
@@ -708,440 +791,24 @@ def choose_best_stage_by_total_eff_roulette(event_name: str, quests_json: dict, 
                 "total_eff": (total_eff if total_eff == float("inf") else r2(total_eff)),
                 "need_tickets": need_tk, "per_box_value": r2(per_box_value),
                 "apple_refund_ap": r2(apple_refund_ap), "stage_drops": st.get("drops", []),
-                "box_details": box_details,  # (미사용 반환값)
+                "box_details": box_details
             })
         break
-
     if not candidates:
         return None
-    def key_fn(x):  # ∞ 우선
+    def key_fn(x):
         return float("inf") if x["total_eff"] == float("inf") else float(x["total_eff"])
     return max(candidates, key=key_fn)
 
-def _compute_all_bests(targets, quests_json, items_json, mats, ap_cost_per_run, prefer_diff,
-                       respect_use_flag: bool=True):
-    """모든 타깃(이벤트×케이스)에 대해 '현재 최적 스테이지' 계산."""
-    results = []
-    for ev, cs in targets:
-        if cs == "roulette":
-            ce_bonus = _get_ce_bonus(ev)
-            best = choose_best_stage_by_total_eff_roulette(
-                ev, quests_json, items_json, ce_bonus, 600.0, ap_cost_per_run, mats, respect_use_flag
-            )
-            if best:
-                best.update({"event": ev, "case": cs, "ce_bonus": ce_bonus})
-                results.append(best)
-        elif cs == "box":
-            best = compute_box_event_best_stage(
-                ev, quests_json, items_json, mats, ap_cost_per_run, prefer_diff or "90++", respect_use_flag
-            )
-            if best:
-                best.update({"event": ev, "case": cs})
-                results.append(best)
-        else:  # raid
-            best = compute_raid_best_stage(ev, quests_json, mats, ap_cost_per_run, respect_use_flag, prefer_diff)
-            if best:
-                results.append({
-                    "event": ev, "case": cs, "stage": best["stage"], "diff": best["diff"],
-                    "stage_val_per_run": best["stage_val_per_run"],
-                    "stage_eff_per_ap": best["stage_eff_per_ap"],
-                    "roulette_eff": 0.0, "total_eff": best["stage_eff_per_ap"],
-                })
-    return results
-
-def _pick_global_best(bests: List[dict]) -> Optional[dict]:
-    """total_eff 기준 최대 후보(∞ 지원)."""
-    if not bests:
-        return None
-    def key_fn(x):
-        v = x.get("total_eff")
-        if v == float("inf"): return float("inf")
-        try: return float(v)
-        except: return -1e18
-    return max(bests, key=key_fn)
-
-# ----------------- 드랍 적용 -----------------
-def _open_roulette_boxes_and_apply(event_name: str, num_boxes: int, items_json: dict,
-                                   mats: Dict[str, dict], cum: Dict[str, float], respect_use_flag: bool=True):
-    """
-    룰렛 박스 개봉 시 보상 적용(교환티켓은 AP 가치 우선 배분).
-    Notes
-    -----
-    - 사과는 AP 환급(풀 증가)만 반영하고, 재료 누적/부족에는 반영하지 않음
-    """
-    if num_boxes <= 0:
-        return
-    blk = get_items_block(event_name, items_json, case="roulette")
-    if not blk:
-        return
-    token_name = None; token_rate = 0.0
-    for d in blk.get("drops", []):
-        item = str(d.get("item") or ""); rate = float(d.get("rate") or 0.0)
-        if not item: continue
-        if item in ("금사과","은사과","청사과","동사과"):  # 환급은 따로 처리
-            continue
-        if item == "교환티켓":
-            token_name = item; token_rate = rate; continue
-        apply_gain_and_track(item, rate * num_boxes, mats, cum, respect_use_flag)
-
-    if token_name and token_rate > 0:
-        total_tokens = token_rate * num_boxes
-        for ex in blk.get("exchanges", []):
-            if str(ex.get("token")) != token_name: continue
-            per_token = float(ex.get("per_token") or 1.0)
-            options = [str(x) for x in ex.get("options", []) if x]
-            alloc = allocate_exchange_tokens_ap_first(total_tokens, per_token, options, mats, respect_use_flag)
-            for it, qty in alloc:
-                apply_gain_and_track(it, qty, mats, cum, respect_use_flag)
-
-def _apply_stage_drops(stage: dict, mats: Dict[str, dict], cum: Dict[str, float], respect_use_flag: bool=True):
-    """스테이지 기본 드랍 기대치 적용(각 드랍: item×rate)."""
-    for d in stage.get("drops", []):
-        item = str(d.get("item") or ""); rate = float(d.get("rate") or 0.0)
-        if not item: continue
-        apply_gain_and_track(item, rate, mats, cum, respect_use_flag)
-
-def _apply_box_event_contents_per_run(event_name: str, stage: dict, event_block: dict, quests_json: dict,
-                                      mats: Dict[str, dict], cum: Dict[str, float], respect_use_flag: bool=True) -> bool:
-    """
-    BOX: base(g/s/b) × contents를 1판당 기대치로 환산하여 적용.
-    - stage.box.base_* × contents.qty_per_box 합산
-    """
-    contents = _fetch_box_contents(stage, event_block, quests_json)
-    if not contents:
-        return False
-    box = stage.get("box") or {}
-    base_gold   = float((box.get("gold")   or {}).get("base", 0.0))
-    base_silver = float((box.get("silver") or {}).get("base", 0.0))
-    base_bronze = float((box.get("bronze") or {}).get("base", 0.0))
-
-    for x in contents.get("gold", []):
-        apply_gain_and_track(str(x.get("item") or ""), float(x.get("qty_per_box") or 0.0) * base_gold, mats, cum, respect_use_flag)
-    for x in contents.get("silver", []):
-        apply_gain_and_track(str(x.get("item") or ""), float(x.get("qty_per_box") or 0.0) * base_silver, mats, cum, respect_use_flag)
-    for x in contents.get("bronze", []):
-        apply_gain_and_track(str(x.get("item") or ""), float(x.get("qty_per_box") or 0.0) * base_bronze, mats, cum, respect_use_flag)
-    return True
-
-def _get_event_block(quests_json: dict, event_name: str, case: str) -> Optional[dict]:
-    """특정 이벤트/케이스의 정의 블록 찾기(스테이지 정의 조회 시 사용)."""
-    for e in quests_json.get("event_quests", []):
-        if str(e.get("event") or "") == event_name and str(e.get("case") or "").lower() == case:
-            return e
-    return None
-
-# ----------------- 최종 재료 현황 -----------------
-def _print_final_materials_summary(w, initial_lack: Dict[str, float],
-                                   mats: Dict[str, dict], cum_gained: Dict[str, float],
-                                   respect_use_flag: bool=True) -> None:
-    """
-    로그 마지막에 '최종 재료 현황' 표 출력.
-    Columns
-    -------
-    재료 | 목표(초기 lack) | 획득(누계 기대) | 부족(최종 lack)
-    Rules
-    -----
-    - use=False 재료는 제외
-    - 목표/획득/부족 모두 0이면 생략
-    - 정렬: 부족 desc → 목표 desc → 재료명 asc
-    """
-    final_lack = snapshot_lack(mats, respect_use_flag)
-    names = set(initial_lack.keys()) | set(cum_gained.keys()) | set(final_lack.keys())
-    rows = []
-    for name in names:
-        # use 플래그 체크
-        rec = mats.get(name)
-        if respect_use_flag and rec is not None and not rec.get("use", True):
-            continue
-        tgt = float(initial_lack.get(name, 0.0))
-        got = float(cum_gained.get(name, 0.0))
-        rem = float(final_lack.get(name, max(0.0, tgt - got)))
-        if tgt == 0.0 and got == 0.0 and rem == 0.0:
-            continue
-        rows.append([name, tgt, got, rem])
-
-    # 정렬
-    rows.sort(key=lambda r: (-r[3], -r[1], r[0]))
-
-    if not rows:
-        w("(최종 재료 현황: 출력할 항목 없음)")
-        return
-
-    headers = ["재료", "목표", "획득", "부족"]
-    fmt_rows = [[r[0], f2(r[1]), f2(r[2]), f2(r[3])] for r in rows]
-    _print_table(w, headers, fmt_rows, aligns=["left", "right", "right", "right"])
-
-# ----------------- 파일 조작: 프리펜드 -----------------
-def _prepend_lines_to_file(filepath: str, lines: List[str]) -> None:
-    """
-    파일 맨 앞에 lines를 삽입. 실패해도 시뮬은 계속.
-    (윈도우에서도 문제없도록 전부 텍스트 재기록 방식)
-    """
-    try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            original = f.read()
-        with open(filepath, "w", encoding="utf-8") as f:
-            for ln in lines:
-                f.write(ln + "\n")
-            f.write("\n")
-            f.write(original)
-    except Exception:
-        pass
-
-# ----------------- 메인 -----------------
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--materials", default="materials.json")
-    ap.add_argument("--quests", default="event_quests.json")
-    ap.add_argument("--items",  default="event_items.json")
-    ap.add_argument("--event",  default=None, help="이벤트명 부분일치 필터(없으면 전부)")
-    ap.add_argument("--diff",   default=None, help="박스/레이드 선호 난이도(예: 90++)")
-    ap.add_argument("--ap-cost", type=float, default=40.0)
-    ap.add_argument("--ignore-use-flag", action="store_true")
-    ap.add_argument("--log", default="run_log.txt")
-    args = ap.parse_args()
-
-    logger = Logger(args.log, tee=False); w = logger.write
-
-    mats = to_material_index(load_json(args.materials))
-    quests_json = load_json(args.quests)
-    try:
-        items_json = load_json(args.items)
-    except Exception:
-        items_json = {}
-
-    respect_use_flag = not args.ignore_use_flag
-    # ★ 초기 목표(초기 lack) 스냅샷 저장: 최종 현황 표 작성 시 사용
-    initial_lack = snapshot_lack(mats, respect_use_flag)
-
-    targets = _list_targets(quests_json, args.event)
-
-    # CE 상태 준비(룰렛 대상만 초기화)
-    _init_ce_state_for_targets(targets)
-
-    # AP 풀 계산(자연 AP + 사과)
-    total_ap = (
-        APPLE_COUNTS.get("gold", 0)   * APPLE_AP_POOL["gold"]   +
-        APPLE_COUNTS.get("silver", 0) * APPLE_AP_POOL["silver"] +
-        APPLE_COUNTS.get("blue", 0)   * APPLE_AP_POOL["blue"]   +
-        APPLE_COUNTS.get("copper", 0) * APPLE_AP_POOL["copper"] +
-        float(NATURAL_AP or 0.0)
-    )
-    w(f"AP 풀: {f2(total_ap)}  | AP/판={f2(args.ap_cost)}  | 로그: 트리거 시점만 기록")
-    w(f"# 룰렛 보너스: 시작 {CE_BASE_BONUS}, 4장당 +1, 최대 {CE_MAX_BONUS}")
-
-    if not targets:
-        w("대상 이벤트 없음.")
-        logger.close()
-        print(f"[로그 저장 완료] {logger.filepath}")
-        return
-
-    # 누적 상태
-    ap_pool = total_ap
-    tickets_acc: Dict[str, float] = {}             # 이벤트별 룰렛 티켓 누적
-    need_tickets_cache: Dict[str, float] = {}      # 이벤트별 룰렛 티켓 필요량(캐시)
-    roulette_refund_per_box: Dict[str, float] = {} # 이벤트별 박스당 환급AP(캐시)
-    cum_gained: Dict[str, float] = {}              # 아이템별 누적 획득 기대량
-
-    last_choice_key = None  # 스테이지 변화 감지
-    run_idx = 0
-
-    # 이벤트별 '연속 주행 세션' 기록 (예: 산타네모 500판 → 관위대관전 30판 → 산타네모 120판)
-    session_segments: List[Tuple[str, int]] = []
-    prev_event_name: Optional[str] = None
-
-    while ap_pool >= args.ap_cost:
-        run_idx += 1
-        # 이번 판 집계 리셋
-        global CURRENT_RUN_GAINS; CURRENT_RUN_GAINS = {}
-
-        # 현재 상태에서의 '최적' 후보 계산
-        bests_before = _compute_all_bests(
-            targets, quests_json, items_json, mats, args.ap_cost, args.diff, respect_use_flag
-        )
-        global_best = _pick_global_best(bests_before)
-        if not global_best:
-            w("※ 선택할 스테이지 없음 → 중단")
-            break
-
-        ev = global_best["event"]; cs = global_best["case"]
-        stage_name = global_best["stage"]; diff = global_best["diff"]
-        ce_bonus_for_line = global_best.get("ce_bonus", _get_ce_bonus(ev))
-        choice_key = f"{ev}|{cs}|{stage_name}|{diff}"
-        stage_changed_trigger = (last_choice_key is None or choice_key != last_choice_key)
-
-        # '연속 세션' 집계 (이벤트가 바뀌면 새 세그먼트)
-        if prev_event_name != ev:
-            session_segments.append((ev, 1))
-            prev_event_name = ev
-        else:
-            name, cnt = session_segments[-1]
-            session_segments[-1] = (name, cnt + 1)
-
-        # AP 차감
-        ap_pool -= args.ap_cost
-
-        # 스테이지 정의 조회
-        block = _get_event_block(quests_json, ev, cs); stage_def = None
-        if block:
-            for st in block.get("stages", []):
-                if str(st.get("stage") or "") == stage_name and str(st.get("diff") or "") == str(diff):
-                    stage_def = st; break
-        if not stage_def:
-            last_choice_key = choice_key; continue
-
-        # 전/후 스냅샷
-        lack_before = snapshot_lack(mats, respect_use_flag)
-
-        # 1) 스테이지 기본 드랍
-        _apply_stage_drops(stage_def, mats, cum_gained, respect_use_flag)
-
-        # 2) 케이스별 추가 처리(+룰렛 환급AP)
-        opened = 0; refund_gain = 0.0; last_tpr_for_run = 0.0
-        if cs == "roulette":
-            ce_bonus = _get_ce_bonus(ev)
-            last_tpr_for_run = tickets_per_run(stage_def, ce_bonus)  # '판당 티켓'
-            tickets_acc[ev] = tickets_acc.get(ev, 0.0) + last_tpr_for_run
-
-            if ev not in need_tickets_cache:
-                need_tickets_cache[ev] = extract_need_tickets_from_items(ev, items_json, default=600.0)
-            if ev not in roulette_refund_per_box:
-                _, ap_refund, _ = compute_per_box_value_and_refund(ev, items_json, mats, respect_use_flag=False)
-                roulette_refund_per_box[ev] = float(ap_refund or 0.0)
-
-            need_tk = need_tickets_cache[ev]
-            if need_tk > 0 and tickets_acc[ev] >= need_tk:
-                opened = int(tickets_acc[ev] // need_tk)
-                tickets_acc[ev] -= opened * need_tk
-                _open_roulette_boxes_and_apply(ev, opened, items_json, mats, cum_gained, respect_use_flag)
-                refund_gain = opened * roulette_refund_per_box.get(ev, 0.0)
-                if refund_gain > 0:
-                    ap_pool += refund_gain
-
-        elif cs == "box":
-            if block:
-                _apply_box_event_contents_per_run(ev, stage_def, block, quests_json, mats, cum_gained, respect_use_flag)
-
-        # 2.5) 특수 수급(이벤트명 부분일치)
-        _apply_special_per_run_yields(ev, mats, cum_gained, respect_use_flag)
-
-        # 3) 트리거 판정
-        lack_after = snapshot_lack(mats, respect_use_flag)
-
-        # (i) 이번 판으로 lack이 0이 된 재료 수집
-        lack_zero_items = []
-        for name, b in lack_before.items():
-            a = lack_after.get(name, 0.0)
-            if b > 0 and a == 0:
-                lack_zero_items.append((name, b, cum_gained.get(name, 0.0)))
-
-        # (ii) CE 경계/보너스 변화 감지
-        ce_trigger_info = None
-        if cs == "roulette":
-            ce_info = _update_ce_after_run(ev, stage_def, block)
-            # 보너스 12 이후엔 로깅 생략(계산은 계속)
-            if ce_info["new_bonus"] < CE_MAX_BONUS and (ce_info["gain_int"] > 0 or ce_info["bonus_inc"] > 0):
-                ce_trigger_info = ce_info
-
-        # (iii) 실제 로깅 여부
-        should_log = stage_changed_trigger or (len(lack_zero_items) > 0) or (ce_trigger_info is not None)
-        ce_only_trigger = (ce_trigger_info is not None) and (not stage_changed_trigger) and (len(lack_zero_items) == 0)
-
-        # 4) 트리거 로깅
-        if should_log:
-            # 헤더(스테이지 변경 or 상태 기록)
-            if stage_changed_trigger:
-                if cs == "roulette":
-                    w(f"[Run {run_idx}] 스테이지 변경 → {ev} [{cs}] {stage_name} ({diff})  | 보너스={ce_bonus_for_line}  | total_eff={global_best['total_eff']}")
-                else:
-                    w(f"[Run {run_idx}] 스테이지 변경 → {ev} [{cs}] {stage_name} ({diff})  | total_eff={global_best['total_eff']}")
-            else:
-                if cs == "roulette":
-                    ce_state = CE_STATE.get(ev, {"drops_acc": 0.0, "bonus": CE_BASE_BONUS})
-                    current_int = int(ce_state["drops_acc"] // 1)
-                    w(f"[Run {run_idx}] 상태 기록 → {ev} [{cs}] {stage_name} ({diff})  | 현재 보너스={ce_state['bonus']} | 예장={current_int}장")
-                else:
-                    w(f"[Run {run_idx}] 상태 기록 → {ev} [{cs}] {stage_name} ({diff})")
-
-            # (A) CE만 변한 경우: 한 줄만 내고 바로 블록 종료(빈 줄 2개)
-            if ce_only_trigger:
-                w(""); w("")
-                last_choice_key = choice_key
-                continue
-
-            # (B) lack→0 재료 상세
-            for name, b, total in lack_zero_items:
-                w(f"  · [Run {run_idx}] 재료 충족: {name}  (부족 {f2(b)} → 0)  | 누적 획득 {f2(total)}")
-
-            # (C) CE 상세(동시 트리거일 때만 출력)
-            if ce_trigger_info is not None and not ce_only_trigger:
-                gi = ce_trigger_info["gain_int"]; bi = ce_trigger_info["bonus_inc"]; cur_int = ce_trigger_info["new_copies_int"]
-                if gi > 0: w(f"  · 예장 드랍: +{gi}장 (현재 {cur_int}장, 누적 기대 {f2(ce_trigger_info['new_drops'])}장)")
-                if bi > 0: w(f"    → 보너스 +{bi} ⇒ 현재 {ce_trigger_info['new_bonus']}  (다음 +1까지 {f2(ce_trigger_info['rem_to_next'])}장 기대)")
-
-            # (D) 이번 판 변화 표
-            w("변동된 결과 (이 판):")
-            _print_gain_table(w, CURRENT_RUN_GAINS, lack_before, lack_after, cum_gained)
-
-            # (E) 룰렛/예장 한 줄 요약 (+판당 티켓)
-            if cs == "roulette":
-                need_tk = need_tickets_cache.get(ev, 0.0)
-                ce_state = CE_STATE.get(ev, {"drops_acc": 0.0, "bonus": CE_BASE_BONUS})
-                cur_int = int(ce_state["drops_acc"] // 1)
-                suffix = ""
-                if ce_state["bonus"] < CE_MAX_BONUS:
-                    rem = max(0.0, CE_COPIES_PER_PLUS - (ce_state["drops_acc"] % CE_COPIES_PER_PLUS))
-                    suffix = f", 다음 +1까지 {f2(rem)}장"
-                w(f"룰렛: 티켓 {f2(tickets_acc.get(ev, 0.0))}/{f2(need_tk)} (+{f2(last_tpr_for_run)}/판) | "
-                  f"환급AP +{f2(refund_gain)} | AP 풀 {f2(ap_pool)} | 예장 {cur_int}장(보너스 {ce_state['bonus']}{suffix})")
-
-            # (F) 현재 효율 요약(재계산)
-            bests_after = _compute_all_bests(
-                targets, quests_json, items_json, mats, args.ap_cost, args.diff, respect_use_flag
-            )
-            w("\n현재 이벤트 효율 요약:")
-            _print_eff_table(w, bests_after, args.ap_cost)
-
-            # 블록 종료 후 빈 줄 2개(가독성)
-            w(""); w("")
-
-        # 다음 루프 비교용
-        last_choice_key = choice_key
-
-    # 종료 정보(요약) + 최종 재료 현황 표
-    w(f"# 종료: 총 실행 {run_idx}판, 잔여 AP 풀={f2(ap_pool)}")
-    w("")  # 구분
-    w("## 최종 재료 현황 (목표/획득/부족)")
-    _print_final_materials_summary(w, initial_lack, mats, cum_gained, respect_use_flag)
-    logger.close()
-
-    # ==== 세션 요약: 콘솔 출력 + 로그 파일 맨 앞에 프리펜드 ====
-    header = ["## 주회 세션(순서대로) — 이벤트별 연속 주행 구간 요약"]
-    body = [f"  {i+1:>2}. {name} — {cnt}판" for i, (name, cnt) in enumerate(session_segments)]
-    lines = header + body + ["", "## 원본 로그 ↓", ""]
-    # 콘솔
-    for ln in header + body:
-        print(ln)
-    print()  # 빈 줄
-    # 파일 선두 삽입
-    _prepend_lines_to_file(args.log, lines)
-
-    print(f"[로그 저장 완료] {logger.filepath}")
-
-# ----------------- 레이드 베스트(하단 배치: 선언 순서 무관) -----------------
-def compute_raid_best_stage(event_name: str, quests_json: dict, mats: Dict[str, dict],
-                            ap_cost_per_run: float, respect_use_flag: bool=True,
-                            prefer_diff: Optional[str]=None) -> Optional[dict]:
-    """
-    레이드 케이스: 스테이지/AP 최대 후보.
-    - 레이드는 별도 룰렛/박스 없음
-    """
-    events = quests_json.get("event_quests", []); candidates = []
+def compute_raid_best_stage(event_name: str, quests_def: dict, materials_index: Dict[str, dict],
+                            ap_cost_per_run: float, respect_use_flag: bool=True, prefer_diff: Optional[str]=None) -> Optional[dict]:
+    """레이드: 스테이지드랍/AP 최댓값"""
+    events = quests_def.get("event_quests", []); candidates = []
     for e in events:
         if str(e.get("event") or "") != event_name or str(e.get("case") or "").lower() != "raid":
             continue
         for st in e.get("stages", []):
-            stage_val = stage_value_per_run(st.get("drops", []), mats, respect_use_flag)
+            stage_val = stage_value_per_run(st.get("drops", []), materials_index, respect_use_flag)
             stage_eff = (stage_val / ap_cost_per_run) if ap_cost_per_run > 0 else 0.0
             candidates.append({"stage": st.get("stage"), "diff": st.get("diff"),
                                "stage_val_per_run": r2(stage_val), "stage_eff_per_ap": r2(stage_eff),
@@ -1154,6 +821,458 @@ def compute_raid_best_stage(event_name: str, quests_json: dict, mats: Dict[str, 
         if pref:
             return max(pref, key=lambda x: float(x["stage_eff_per_ap"]))
     return max(candidates, key=lambda x: float(x["stage_eff_per_ap"]))
+
+# =============================================================================
+# 1판 적용(드랍/룰렛/박스)
+# =============================================================================
+
+def _open_roulette_boxes_and_apply(event_name: str, num_boxes: int, items_def: dict,
+                                   materials_index: Dict[str, dict], cum_gained: Dict[str, float],
+                                   respect_use_flag: bool=True):
+    """룰렛 상자 num_boxes개 오픈 후 드랍/교환 반영"""
+    if num_boxes <= 0:
+        return
+    blk = get_items_block(event_name, items_def, case="roulette")
+    if not blk:
+        return
+    token_name = None
+    token_rate = 0.0
+    for d in blk.get("drops", []):
+        item = str(d.get("item") or "")
+        rate = float(d.get("rate") or 0.0)
+        if not item:
+            continue
+        if item in APPLE_ITEM_NAMES:
+            continue
+        if item == "교환티켓":
+            token_name = item
+            token_rate = rate
+            continue
+        apply_gain_and_track(item, rate * num_boxes, materials_index, cum_gained, respect_use_flag)
+    if token_name and token_rate > 0:
+        total_tokens = token_rate * num_boxes
+        for ex in blk.get("exchanges", []):
+            if str(ex.get("token")) != token_name:
+                continue
+            per_token = float(ex.get("per_token") or 1.0)
+            options = [str(x) for x in ex.get("options", []) if x]
+            alloc = allocate_exchange_tokens_ap_first(total_tokens, per_token, options, materials_index, respect_use_flag)
+            for it, qty in alloc:
+                apply_gain_and_track(it, qty, materials_index, cum_gained, respect_use_flag)
+
+def _apply_stage_drops(stage_def: dict, materials_index: Dict[str, dict],
+                       cum_gained: Dict[str, float], respect_use_flag: bool=True):
+    """스테이지 기본 드랍 1회분 적용"""
+    for d in stage_def.get("drops", []):
+        item = str(d.get("item") or ""); rate = float(d.get("rate") or 0.0)
+        if not item:
+            continue
+        apply_gain_and_track(item, rate, materials_index, cum_gained, respect_use_flag)
+
+def _apply_box_event_contents_per_run(event_name: str, stage_def: dict, event_block: dict,
+                                      quests_def: dict, items_def: dict, materials_index: Dict[str, dict],
+                                      cum_gained: Dict[str, float], respect_use_flag: bool=True) -> bool:
+    """
+    박스 이벤트: 스테이지 클리어 1회당 상자 내용물 기대값 반영
+    (스테이지 정의 우선, 없으면 event_items.json 추론)
+    """
+    contents = _fetch_box_contents(stage_def, event_block, quests_def)
+    if not contents:
+        contents = _build_box_contents_from_items_json(event_name, items_def)
+        if not contents:
+            return False
+    box = stage_def.get("box") or {}
+    base_gold   = float((box.get("gold")   or {}).get("base", 0.0))
+    base_silver = float((box.get("silver") or {}).get("base", 0.0))
+    base_bronze = float((box.get("bronze") or {}).get("base", 0.0))
+    def _apply_list(lst, base):
+        if not lst or base <= 0:
+            return
+        has_qty = any('qty_per_box' in (x or {}) for x in lst)
+        has_rate = any('rate' in (x or {}) for x in lst)
+        n = len(lst)
+        for x in lst:
+            item = str((x or {}).get("item") or "")
+            if not item:
+                continue
+            if has_qty:
+                per_box = float((x or {}).get("qty_per_box") or 0.0)
+            elif has_rate:
+                per_box = float((x or {}).get("rate") or 0.0)
+            else:
+                per_box = 1.0 / n if n > 0 else 0.0
+            apply_gain_and_track(item, per_box * base, materials_index, cum_gained, respect_use_flag)
+    _apply_list(contents.get("gold", []), base_gold)
+    _apply_list(contents.get("silver", []), base_silver)
+    _apply_list(contents.get("bronze", []), base_bronze)
+    return True
+
+# =============================================================================
+# 대상/베스트/CE 상태
+# =============================================================================
+
+def _list_targets(quests_def: dict, event_filter: Optional[str]) -> List[Tuple[str, str]]:
+    """이벤트 목록(roulette/box/raid) → [(event, case)]"""
+    seen = set(); out = []
+    for e in quests_def.get("event_quests", []):
+        ev = str(e.get("event") or ""); cs = str(e.get("case") or "").lower()
+        if not ev or cs not in ("roulette", "box", "raid"):
+            continue
+        if event_filter and (event_filter not in ev):
+            continue
+        key = (ev, cs)
+        if key not in seen:
+            seen.add(key); out.append(key)
+    return out
+
+def _compute_all_bests(targets, quests_def, items_def, materials_index, ap_cost_per_run, prefer_diff, respect_use_flag: bool=True):
+    """각 대상 이벤트별 최적 스테이지 계산"""
+    results = []
+    for ev, cs in targets:
+        if cs == "roulette":
+            ce_bonus = _get_ce_bonus(ev)
+            best = choose_best_stage_by_total_eff_roulette(ev, quests_def, items_def, ce_bonus, 600.0, ap_cost_per_run, materials_index, respect_use_flag)
+            if best:
+                best.update({"event": ev, "case": cs, "ce_bonus": ce_bonus})
+                results.append(best)
+        elif cs == "box":
+            best = compute_box_event_best_stage(ev, quests_def, items_def, materials_index, ap_cost_per_run, prefer_diff, respect_use_flag)
+            if best:
+                best.update({"event": ev, "case": cs})
+                results.append(best)
+        else:
+            best = compute_raid_best_stage(ev, quests_def, materials_index, ap_cost_per_run, respect_use_flag, prefer_diff)
+            if best:
+                results.append({"event": ev, "case": cs, "stage": best["stage"], "diff": best["diff"],
+                                "stage_val_per_run": best["stage_val_per_run"], "stage_eff_per_ap": best["stage_eff_per_ap"],
+                                "roulette_eff": 0.0, "total_eff": best["stage_eff_per_ap"]})
+    return results
+
+def _pick_global_best(best_list: List[dict]) -> Optional[dict]:
+    """모든 후보 중 total_eff 최대 선택"""
+    if not best_list:
+        return None
+    def key_fn(x):
+        v = x.get("total_eff")
+        if v == float("inf"): return float("inf")
+        try: return float(v)
+        except Exception: return -1e18
+    return max(best_list, key=key_fn)
+
+def _get_ce_bonus(event_name: str) -> int:
+    st = CE_STATE.get(event_name)
+    return int(st["bonus"]) if st else CE_BASE_BONUS
+
+def _get_ce_drop_rate(stage_def: dict, event_block: Optional[dict]) -> float:
+    """CE 드랍 기대치(스테이지 우선, 없으면 이벤트 기본치)"""
+    v = stage_def.get("ce_drop_rate")
+    if v is None and event_block is not None:
+        v = event_block.get("ce_drop_rate")
+    try:
+        return float(v or 0.0)
+    except Exception:
+        return 0.0
+
+def _update_ce_after_run(event_name: str, stage_def: dict, event_block: Optional[dict]) -> dict:
+    """
+    룰렛 CE 상태 업데이트: 기대 드랍 누적, +1 보너스 단계 계산
+    Returns: 상태 변화/요약 정보
+    """
+    if event_name not in CE_STATE:
+        return {"p":0.0,"new_drops":0.0,"new_copies_int":0,"gain_int":0,"bonus_inc":0,"new_bonus":_get_ce_bonus(event_name),"rem_to_next":0.0}
+    p = _get_ce_drop_rate(stage_def, event_block)
+    prev = CE_STATE[event_name]["drops_acc"]; new = prev + p
+    prev_floor = int(prev // 1); new_floor = int(new // 1)
+    gain_int = max(0, new_floor - prev_floor)
+    prev_steps = int(prev // CE_COPIES_PER_PLUS); new_steps = int(new // CE_COPIES_PER_PLUS)
+    bonus_inc = max(0, new_steps - prev_steps)
+    new_bonus = min(CE_MAX_BONUS, CE_BASE_BONUS + new_steps)
+    CE_STATE[event_name]["drops_acc"] = new; CE_STATE[event_name]["bonus"] = new_bonus
+    next_step_target = (new_steps + 1) * CE_COPIES_PER_PLUS
+    rem_to_next = max(0.0, next_step_target - new)
+    return {"p":p,"new_drops":new,"new_copies_int":int(new // 1),"gain_int":gain_int,"bonus_inc":bonus_inc,"new_bonus":new_bonus,"rem_to_next":rem_to_next}
+
+def _init_ce_state_for_targets(targets):
+    for ev, cs in targets:
+        if cs == "roulette" and ev not in CE_STATE:
+            CE_STATE[ev] = {"drops_acc": 0.0, "bonus": CE_BASE_BONUS}
+
+# =============================================================================
+# 최종 표 & 로그 헤더
+# =============================================================================
+
+def _print_final_materials_summary(write_line, initial_lack: Dict[str, float], materials_index: Dict[str, dict],
+                                   cum_gained: Dict[str, float], respect_use_flag: bool=True) -> None:
+    """최종 재료 요약(정렬 규칙 유지, 정수 표기)"""
+    final_lack = snapshot_lack(materials_index, respect_use_flag)
+    names = set(initial_lack.keys()) | set(cum_gained.keys()) | set(final_lack.keys())
+    rows = []
+    for name in names:
+        rec = materials_index.get(name)
+        if respect_use_flag and rec is not None and not rec.get("use", True):
+            continue
+        target = float(initial_lack.get(name, 0.0))
+        got = float(cum_gained.get(name, 0.0))
+        remain = float(final_lack.get(name, max(0.0, target - got)))
+        if target == 0.0 and got == 0.0 and remain == 0.0:
+            continue
+        rows.append([name, target, got, remain])
+
+    rows.sort(key=lambda r: _material_sort_key(r[0]))
+    if not rows:
+        write_line("(최종 재료 현황: 출력할 항목 없음)")
+        return
+    headers = ["재료", "목표", "획득", "부족"]
+    fmt_rows = [[r[0], f0(r[1]), f0(r[2]), f0(r[3])] for r in rows]
+    _print_table(write_line, headers, fmt_rows, aligns=["left", "right", "right", "right"])
+
+def _prepend_lines_to_file(filepath: str, lines: List[str]) -> None:
+    """파일 상단에 요약 헤더 삽입(본문은 유지)"""
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            original = f.read()
+        with open(filepath, "w", encoding="utf-8") as f:
+            for ln in lines:
+                f.write(ln + "\n")
+            f.write("\n")
+            f.write(original)
+    except Exception:
+        pass
+
+# =============================================================================
+# 메인
+# =============================================================================
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--materials", default="materials.json")
+    parser.add_argument("--quests", default="event_quests.json")
+    parser.add_argument("--items",  default="event_items.json")
+    parser.add_argument("--event",  default=None)
+    parser.add_argument("--diff",   default=None)
+    parser.add_argument("--ap-cost", type=float, default=40.0)
+    parser.add_argument("--ignore-use-flag", action="store_true")
+    parser.add_argument("--log", default="run_log.txt")
+    parser.add_argument("--table-format", choices=["text", "md", "csv"], default="text",
+                        help="표 출력 포맷(text, md, csv)")
+    parser.add_argument("--table-style", choices=["box","ascii"], default="box",
+                        help="텍스트 표 스타일: box(상자선) | ascii(+---+)")
+    parser.add_argument("--ambiguous-wide", action="store_true",
+                        help="모호폭(A) 문자를 폭=2로 취급(기본 1칸)")
+    parser.add_argument("--ascii-arrow", action="store_true",
+                        help="화살표를 '->'로 출력(기본 '→')")
+    parser.add_argument("--ascii-bullet", action="store_true",
+                        help="불릿을 '-'로 출력(기본 '·')")
+    args = parser.parse_args()
+
+    global TABLE_FORMAT, TABLE_STYLE, AMBIGUOUS_WIDE, ARROW, BULLET
+    TABLE_FORMAT = args.table_format
+    TABLE_STYLE  = args.table_style
+    AMBIGUOUS_WIDE = bool(args.ambiguous_wide)
+    if args.ascii_arrow:
+        ARROW = "->"
+    if args.ascii_bullet:
+        BULLET = "-"
+
+    logger = Logger(args.log, tee=False); w = logger.write
+
+    # 1) 데이터 로드/인덱싱/정렬맵
+    materials_json = load_json(args.materials)
+    init_rarity_map_from_materials(materials_json)
+    materials_index = to_material_index(materials_json)
+    init_sort_index_from_materials(materials_json)
+
+    quests_def = load_json(args.quests)
+    try:
+        items_def = load_json(args.items)
+    except Exception:
+        items_def = {}
+
+    # 1-1) (신규) 아이템명 검증
+    unknown_map = validate_item_names(materials_index, quests_def, items_def)
+    if unknown_map:
+        w("## 경고: materials.json에 없는 아이템명이 참조되었습니다")
+        known_names_sorted = sorted(materials_index.keys())
+        for nm in sorted(unknown_map.keys(), key=lambda x: x):
+            locs = ", ".join(unknown_map[nm])
+            suggestions = difflib.get_close_matches(nm, known_names_sorted, n=3, cutoff=0.6)
+            sug = (" | 유사: " + ", ".join(suggestions)) if suggestions else ""
+            w(f"- {nm}  | 위치 예시: {locs}{sug}")
+        w("")
+
+    respect_use_flag = not args.ignore_use_flag
+    initial_lack = snapshot_lack(materials_index, respect_use_flag)
+    targets = _list_targets(quests_def, args.event)
+    _init_ce_state_for_targets(targets)
+
+    total_ap = (
+        APPLE_COUNTS.get("gold", 0)   * APPLE_AP_BY_POOL["gold"]   +
+        APPLE_COUNTS.get("silver", 0) * APPLE_AP_BY_POOL["silver"] +
+        APPLE_COUNTS.get("blue", 0)   * APPLE_AP_BY_POOL["blue"]   +
+        APPLE_COUNTS.get("copper", 0) * APPLE_AP_BY_POOL["copper"] +
+        float(NATURAL_AP or 0.0)
+    )
+    w(f"AP 풀: {f2(total_ap)}  | AP/판={f2(args.ap_cost)}  | 표 포맷={args.table_format}, 스타일={args.table_style}")
+    w(f"# 룰렛 보너스: 시작 {CE_BASE_BONUS}, {CE_COPIES_PER_PLUS}장당 +1, 최대 {CE_MAX_BONUS}")
+
+    if not targets:
+        w("대상 이벤트 없음.")
+        logger.close()
+        print(f"[로그 저장 완료] {logger.filepath}")
+        return
+
+    # 2) 루프 상태
+    ap_pool = total_ap
+    tickets_acc_by_event: Dict[str, float] = {}
+    need_tickets_cache: Dict[str, float] = {}
+    roulette_refund_per_box: Dict[str, float] = {}
+    cum_gained: Dict[str, float] = {}
+
+    last_choice_key = None
+    run_idx = 0
+    session_segments: List[Tuple[str, str, int]] = []
+    prev_session_key: Optional[Tuple[str, str]] = None
+
+    # 3) AP가 남을 동안 반복
+    while ap_pool >= args.ap_cost:
+        run_idx += 1
+        global CURRENT_RUN_GAINS; CURRENT_RUN_GAINS = {}
+
+        # 이번 판 들어가기 전 기준의 각 이벤트 최적 스테이지
+        bests_before = _compute_all_bests(targets, quests_def, items_def, materials_index, args.ap_cost, args.diff, respect_use_flag)
+        global_best = _pick_global_best(bests_before)
+        if not global_best:
+            w("※ 선택할 스테이지 없음 → 중단")
+            break
+
+        ev = global_best["event"]; cs = global_best["case"]
+        stage_name = global_best["stage"]; diff = global_best["diff"]
+        ce_bonus_for_line = global_best.get("ce_bonus", _get_ce_bonus(ev))
+
+        choice_key = f"{ev}|{cs}|{stage_name}|{diff}"
+        stage_changed_trigger = (last_choice_key is None or choice_key != last_choice_key)
+        sess_key = (ev, diff)
+        if prev_session_key != sess_key:
+            session_segments.append((ev, diff, 1))
+            prev_session_key = sess_key
+        else:
+            name, d, cnt = session_segments[-1]
+            session_segments[-1] = (name, d, cnt + 1)
+
+        ap_pool -= args.ap_cost
+        block = _get_event_block(quests_def, ev, cs); stage_def = None
+        if block:
+            for st in block.get("stages", []):
+                if str(st.get("stage") or "") == stage_name and str(st.get("diff") or "") == str(diff):
+                    stage_def = st; break
+        if not stage_def:
+            last_choice_key = choice_key; continue
+
+        lack_before = snapshot_lack(materials_index, respect_use_flag)
+        _apply_stage_drops(stage_def, materials_index, cum_gained, respect_use_flag)
+
+        opened = 0; refund_gain = 0.0; last_tpr_for_run = 0.0
+        if cs == "roulette":
+            ce_bonus = _get_ce_bonus(ev)
+            last_tpr_for_run = tickets_per_run(stage_def, ce_bonus)
+            tickets_acc_by_event[ev] = tickets_acc_by_event.get(ev, 0.0) + last_tpr_for_run
+            if ev not in need_tickets_cache:
+                need_tickets_cache[ev] = extract_need_tickets_from_items(ev, items_def, default=600.0)
+            if ev not in roulette_refund_per_box:
+                _, ap_refund, _ = compute_per_box_value_and_refund(ev, items_def, materials_index, respect_use_flag=False)
+                roulette_refund_per_box[ev] = float(ap_refund or 0.0)
+            need_tk = need_tickets_cache[ev]
+            if need_tk > 0 and tickets_acc_by_event[ev] >= need_tk:
+                opened = int(tickets_acc_by_event[ev] // need_tk)
+                tickets_acc_by_event[ev] -= opened * need_tk
+                _open_roulette_boxes_and_apply(ev, opened, items_def, materials_index, cum_gained, respect_use_flag)
+                refund_gain = opened * roulette_refund_per_box.get(ev, 0.0)
+                if refund_gain > 0:
+                    ap_pool += refund_gain
+        elif cs == "box":
+            if block:
+                _apply_box_event_contents_per_run(ev, stage_def, block, quests_def, items_def, materials_index, cum_gained, respect_use_flag)
+
+        _apply_special_per_run_yields(ev, materials_index, cum_gained, respect_use_flag)
+
+        lack_after = snapshot_lack(materials_index, respect_use_flag)
+        lack_zero_items = []
+        for name, b in lack_before.items():
+            a = lack_after.get(name, 0.0)
+            if b > 0 and a == 0:
+                lack_zero_items.append((name, b, cum_gained.get(name, 0.0)))
+
+        ce_trigger_info = None
+        if cs == "roulette":
+            ce_info = _update_ce_after_run(ev, stage_def, block)
+            if ce_info["new_bonus"] < CE_MAX_BONUS and (ce_info["gain_int"] > 0 or ce_info["bonus_inc"] > 0):
+                ce_trigger_info = ce_info
+
+        should_log = stage_changed_trigger or (len(lack_zero_items) > 0) or (ce_trigger_info is not None)
+        ce_only_trigger = (ce_trigger_info is not None) and (not stage_changed_trigger) and (len(lack_zero_items) == 0)
+
+        if should_log:
+            if stage_changed_trigger:
+                if cs == "roulette":
+                    w(f"[Run {run_idx}] 스테이지 변경 → {ev} [{cs}] {stage_name} ({diff})  | 보너스={ce_bonus_for_line}  | total_eff={f2s(global_best['total_eff'])}")
+                else:
+                    w(f"[Run {run_idx}] 스테이지 변경 → {ev} [{cs}] {stage_name} ({diff})  | total_eff={f2s(global_best['total_eff'])}")
+            else:
+                if cs == "roulette":
+                    ce_state = CE_STATE.get(ev, {"drops_acc": 0.0, "bonus": CE_BASE_BONUS})
+                    current_int = int(ce_state["drops_acc"] // 1)
+                    w(f"[Run {run_idx}] 상태 기록 → {ev} [{cs}] {stage_name} ({diff})  | 현재 보너스={ce_state['bonus']} | 예장={current_int}장")
+                else:
+                    w(f"[Run {run_idx}] 상태 기록 → {ev} [{cs}] {stage_name} ({diff})")
+            if ce_only_trigger:
+                w(""); w("")
+                last_choice_key = choice_key
+                continue
+
+            for name, b, total in lack_zero_items:
+                w(f"  {BULLET} [Run {run_idx}] 재료 충족: {name}  (부족 {f2(b)} {ARROW} 0)  | 누적 획득 {f2(total)}")
+
+            if ce_trigger_info is not None and not ce_only_trigger:
+                gi = ce_trigger_info["gain_int"]; bi = ce_trigger_info["bonus_inc"]; cur_int = ce_trigger_info["new_copies_int"]
+                if gi > 0: w(f"  {BULLET} 예장 드랍: +{gi}장 (현재 {cur_int}장, 누적 기대 {f2(ce_trigger_info['new_drops'])}장)")
+                if bi > 0: w(f"    → 보너스 +{bi} ⇒ 현재 {ce_trigger_info['new_bonus']}  (다음 +1까지 {f2(ce_trigger_info['rem_to_next'])}장 기대)")
+
+            w("변동된 결과 (이 판):")
+            _print_gain_table(w, CURRENT_RUN_GAINS, lack_before, lack_after, cum_gained)
+
+            if cs == "roulette":
+                need_tk = need_tickets_cache.get(ev, 0.0)
+                ce_state = CE_STATE.get(ev, {"drops_acc": 0.0, "bonus": CE_BASE_BONUS})
+                cur_int = int(ce_state["drops_acc"] // 1)
+                suffix = ""
+                if ce_state["bonus"] < CE_MAX_BONUS:
+                    rem = max(0.0, CE_COPIES_PER_PLUS - (ce_state["drops_acc"] % CE_COPIES_PER_PLUS))
+                    suffix = f", 다음 +1까지 {f2(rem)}장"
+                w(f"룰렛: 티켓 {f2(tickets_acc_by_event.get(ev, 0.0))}/{f2(need_tk)} (+{f2(last_tpr_for_run)}/판) | 환급AP +{f2(refund_gain)} | AP 풀 {f2(ap_pool)} | 예장 {cur_int}장(보너스 {ce_state['bonus']}{suffix})")
+
+            # 이번 판 반영 후 최적 효율 요약(정보용)
+            bests_after = _compute_all_bests(targets, quests_def, items_def, materials_index, args.ap_cost, args.diff, respect_use_flag)
+            w("\n현재 이벤트 효율 요약:")
+            _print_eff_table(w, bests_after, args.ap_cost)
+            w(""); w("")
+
+        last_choice_key = choice_key
+
+    w(f"# 종료: 총 실행 {run_idx}판, 잔여 AP 풀={f2(ap_pool)}")
+    w("")
+    w("## 최종 재료 현황 (목표/획득/부족)")
+    _print_final_materials_summary(w, initial_lack, materials_index, cum_gained, respect_use_flag)
+    logger.close()
+
+    # 로그 상단 요약 블록 삽입
+    header = ["## 주회 세션(순서대로) — 이벤트별 연속 주행 구간 요약"]
+    body = [f"  {i+1:>2}. {name} [{d}] — {cnt}판" for i, (name, d, cnt) in enumerate(session_segments)]
+    lines = header + body + ["", "## 원본 로그 ↓", ""]
+    for ln in header + body:
+        print(ln)
+    print()
+    _prepend_lines_to_file(args.log, lines)
+    print(f"[로그 저장 완료] {logger.filepath}")
 
 if __name__ == "__main__":
     main()

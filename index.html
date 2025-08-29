@@ -12,7 +12,7 @@
     .card{background:linear-gradient(180deg,#0b1223,#0b1223 60%,#0b1223aa);border:1px solid #1f2937;border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
     h1{font-size:22px;margin:0 0 10px}.sub{color:var(--muted);font-size:14px;margin-bottom:16px}
     .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.grow{flex:1}
-    input[type="number"],input[type="text"]{background:#0b1223;border:1px solid #1f2937;border-radius:10px;color:var(--fg);padding:10px 12px}
+    input[type="number"],input[type="text"],input[type="file"]{background:#0b1223;border:1px solid #1f2937;border-radius:10px;color:var(--fg);padding:10px 12px}
     input[type="number"]{width:140px}
     label.sm{font-size:13px;color:var(--muted);display:block;margin-bottom:4px}
     .grp{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 12px}
@@ -60,13 +60,20 @@
         <div><label class="sm">동사과</label><input id="apple-copper" type="number" min="0" step="1" value="0"></div>
       </div>
 
-      <!-- 재료 표 -->
+      <!-- 재료 표/검색/업로드 -->
       <div class="row" style="margin:12px 0">
         <div class="grow">
           <div class="toolbar">
             <input id="search" type="text" placeholder="아이템 검색(이름 일부)" />
             <span class="right badge">AP/판=40 · text+ascii</span>
           </div>
+
+          <div class="toolbar">
+            <div class="grow hint">기본은 모든 재료 <b>0</b>으로 시작합니다. 필요하면 아래에서 <b>materials.json 업로드</b>로 교체하세요.</div>
+            <label class="sm" style="margin:0">materials.json 업로드</label>
+            <input id="matUpload" type="file" accept="application/json" />
+          </div>
+
           <div class="tblwrap">
             <table id="matTable">
               <thead><tr><th>재료</th><th>레어도</th><th>ap/개</th><th>보유량</th><th>목표량</th></tr></thead>
@@ -113,6 +120,9 @@
     const NAME_QP = 'QP';
     const MILLION = 1_000_000;
 
+    // 업로드/리셋 기준 스냅샷(Reset 버튼 동작용)
+    let RESET_SNAPSHOT = null;
+
     function shouldHide(name){
       if (EXACT_HIDE.has(name)) return true;
       return HIDE_BY_KEYWORD.some(k => name.includes(k));
@@ -125,6 +135,18 @@
       return name;
     }
 
+    // 업로드하지 않은 기본 시작: 모든 have/need 0으로 초기화
+    function makeZeroBaseline(materialsJson){
+      const out = structuredClone(materialsJson);
+      for (const m of (out.materials||[])){
+        m.have = 0;
+        m.need = 0;
+        m.lack = 0;
+      }
+      return out;
+    }
+
+    // 숨김/강제 정책 적용
     function applyHiddenItemPolicies(){
       const rows = BASE.materials.materials || [];
       for (const m of rows){
@@ -153,8 +175,8 @@
         if (kw && !rawName.includes(kw)) continue;
 
         const isQP = (rawName === NAME_QP);
-        const dispHave = isQP ? Math.floor((m.have||0)/MILLION) : (m.have||0);
-        const dispNeed = isQP ? Math.floor((m.need||0)/MILLION) : (m.need||0);
+        const dispHave = isQP ? Math.floor((m.have||0)/MILLION) : (m.have??0);
+        const dispNeed = isQP ? Math.floor((m.need||0)/MILLION) : (m.need??0);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -192,8 +214,9 @@
     }
 
     function resetInputs() {
-      // JSON 원본을 훼손하지 않도록 deep copy 후 정책 재적용
-      BASE.materials = structuredClone(BASE._orig_materials);
+      if (RESET_SNAPSHOT){
+        BASE.materials = structuredClone(RESET_SNAPSHOT);
+      }
       applyHiddenItemPolicies();
       renderTable(document.querySelector('#search').value||'');
       // 사과 입력은 0으로 초기화
@@ -266,7 +289,9 @@ try:
     core.APPLE_COUNTS
 except AttributeError:
     core.APPLE_COUNTS = {}
-for k,v in ${JSON.stringify(apples)}.items():
+for k,v in ${JSON.stringify({gold:0,silver:0,blue:0,copper:0})}.items():
+    pass
+for k,v in ${'__JS_AP__'}.items():
     try:
         core.APPLE_COUNTS[k] = float(v) if v is not None else 0.0
     except Exception:
@@ -277,7 +302,8 @@ core.TABLE_STYLE  = "ascii"
 
 core.main()
 open("run_log.txt","r",encoding="utf-8").read()
-        `;
+        `.replace('__JS_AP__', JSON.stringify(apples));
+
         const log = await pyodide.runPythonAsync(py);
         out.textContent = log || '(로그 비어 있음)';
         document.querySelector('#dlBtn').disabled = false;
@@ -288,13 +314,36 @@ open("run_log.txt","r",encoding="utf-8").read()
       }
     }
 
-    // ===== 5) 초기화 =====
+    // ===== 5) 초기화 & 업로드 처리 =====
+    async function handleUpload(ev){
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      try{
+        const txt = await file.text();
+        const json = JSON.parse(txt);
+        if (!json || !Array.isArray(json.materials)) throw new Error('materials 배열이 없습니다.');
+        BASE.materials = json;                   // 업로드 값 그대로 사용
+        applyHiddenItemPolicies();               // 인연/종화 강제 100만, 숨김 항목 계산 제외
+        RESET_SNAPSHOT = structuredClone(BASE.materials); // Reset은 업로드값으로
+        renderTable(document.querySelector('#search').value||'');
+      }catch(err){
+        alert('materials.json 파싱 실패: ' + err);
+      }finally{
+        // 파일 선택값 초기화(같은 파일 재업로드 허용)
+        ev.target.value = '';
+      }
+    }
+
     (async () => {
       try{
         BASE = await loadJsonFiles();
-        // 원본 보존해두고 작업용 복사본 사용
-        BASE._orig_materials = structuredClone(BASE.materials);
+
+        // ① 기본 시작: 모든 재료 0으로 세팅한 스냅샷을 활성화
+        const zeroed = makeZeroBaseline(BASE.materials);
+        BASE.materials = zeroed;
         applyHiddenItemPolicies();
+        RESET_SNAPSHOT = structuredClone(BASE.materials); // Reset은 "0으로 세팅된 상태"로
+
         renderTable();
 
         await bootPyodide();
@@ -310,6 +359,7 @@ open("run_log.txt","r",encoding="utf-8").read()
         document.querySelector('#runBtn').addEventListener('click', runSimulation);
         document.querySelector('#resetBtn').addEventListener('click', resetInputs);
         document.querySelector('#search').addEventListener('input', (e)=> renderTable(e.target.value||''));
+        document.querySelector('#matUpload').addEventListener('change', handleUpload);
       }catch(err){
         document.querySelector('#boot').innerHTML = '<b class="err">초기화 실패:</b> '+err;
       }

@@ -39,6 +39,9 @@ import unicodedata
 import difflib
 from typing import Dict, List, Tuple, Optional
 
+# 요약 테이블 계산 시 부족분(lack) 무시 플래그
+SUMMARY_IGNORE_NEED = False
+
 # =============================================================================
 # 상수/전역 설정
 # =============================================================================
@@ -216,7 +219,7 @@ def mat_ap(item: str, materials_index: Dict[str, dict], respect_use_flag: bool=T
         return 0.0
     if respect_use_flag and not rec.get("use", True):
         return 0.0
-    if float(rec.get("lack") or 0.0) <= 0.0:
+    if (not SUMMARY_IGNORE_NEED) and (float(rec.get("lack") or 0.0) <= 0.0):
         return 0.0
     return float(rec.get("ap") or 0.0)
 
@@ -1251,9 +1254,11 @@ def main():
                 w(f"룰렛: 티켓 {f2(tickets_acc_by_event.get(ev, 0.0))}/{f2(need_tk)} (+{f2(last_tpr_for_run)}/판) | 환급AP +{f2(refund_gain)} | AP 풀 {f2(ap_pool)} | 예장 {cur_int}장(보너스 {ce_state['bonus']}{suffix})")
 
             # 이번 판 반영 후 최적 효율 요약(정보용)
+            SUMMARY_IGNORE_NEED = True
             bests_after = _compute_all_bests(targets, quests_def, items_def, materials_index, args.ap_cost, args.diff, respect_use_flag)
-            w("\n현재 이벤트 효율 요약:")
+            w(\"\n현재 이벤트 효율 요약:\")
             _print_eff_table(w, bests_after, args.ap_cost)
+            SUMMARY_IGNORE_NEED = False
             w(""); w("")
 
         last_choice_key = choice_key

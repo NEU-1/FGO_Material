@@ -1,329 +1,123 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <title>FGO 이벤트 주회 시뮬레이터 – 웹 간편판 (CDN)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-  <style>
-    :root { --bg:#0f172a; --card:#111827; --muted:#94a3b8; --fg:#e5e7eb; --acc:#22d3ee; --ok:#34d399; --err:#f87171 }
-    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Apple SD Gothic Neo,'Noto Sans KR',sans-serif}
-    .wrap{max-width:1100px;margin:40px auto;padding:0 16px}
-    .card{background:linear-gradient(180deg,#0b1223,#0b1223 60%,#0b1223aa);border:1px solid #1f2937;border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-    h1{font-size:22px;margin:0 0 10px} .sub{color:var(--muted);font-size:14px;margin-bottom:16px}
-    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-    .grow{flex:1}
-    input[type="number"],input[type="text"]{background:#0b1223;border:1px solid #1f2937;border-radius:10px;color:var(--fg);padding:10px 12px}
-    input[type="number"]{width:120px}
-    label.sm{font-size:13px;color:var(--muted);display:block;margin-bottom:4px}
-    .grp{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 12px}
-    button{background:var(--acc);color:#001018;border:0;border-radius:12px;padding:10px 16px;font-weight:700;cursor:pointer}
-    button.ghost{background:#0b1223;color:var(--fg);border:1px solid #1f2937}
-    button:disabled{opacity:.6;cursor:not-allowed}
-    .hint{color:var(--muted);font-size:13px}
-    .tblwrap{max-height:380px;overflow:auto;border:1px solid #1f2937;border-radius:12px}
-    table{border-collapse:collapse;width:100%;font-size:14px}
-    th,td{border-bottom:1px solid #1f2937;padding:8px 10px;text-align:left}
-    thead th{position:sticky;top:0;background:#0b1223;z-index:1}
-    pre{white-space:pre-wrap;background:#0b1223;border:1px solid #1f2937;border-radius:12px;padding:16px;min-height:220px}
-    .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#0b1223;border:1px solid #1f2937;font-size:12px;color:var(--muted)}
-    .ok{color:var(--ok)} .err{color:var(--err)}
-    .loader{display:inline-block;width:16px;height:16px;border:3px solid #1f2937;border-top-color:var(--acc);border-radius:50%;animation:spin 1s linear infinite;vertical-align:-3px;margin-right:6px}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .bar{height:8px;border:1px solid #1f2937;border-radius:999px;overflow:hidden}
-    .bar>i{display:block;height:100%;background:linear-gradient(90deg,#0891b2,#22d3ee);width:0%}
-    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
-    .right{margin-left:auto}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>FGO 이벤트 주회 시뮬레이터 (Web · Pyodide)</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preload" href="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js" as="script">
+<style>
+  :root{color-scheme:dark light}
+  body{font-family:ui-sans-serif,system-ui,Apple SD Gothic Neo,Segoe UI,Roboto,Helvetica,Arial,'Apple Color Emoji','Segoe UI Emoji';margin:0;background:#0b0d10;color:#e7eaf0}
+  .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+  h1{font-size:20px;margin:4px 0 12px 0}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .card{background:#12161c;border:1px solid #1e2530;border-radius:12px;padding:12px}
+  .pill{display:inline-flex;align-items:center;background:#0f1320;border:1px solid #1b2334;border-radius:999px;padding:8px 10px;gap:8px}
+  input[type="number"]{background:#0d1218;border:1px solid #1b2334;color:#e7eaf0;border-radius:10px;padding:8px 10px;width:110px}
+  input.small{width:86px}
+  input.qp{width:120px}
+  button{background:#2b64ff;border:0;color:#fff;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
+  button:disabled{opacity:.65;cursor:not-allowed}
+  .muted{opacity:.75}
+  .tbl{width:100%;border-collapse:collapse;font-size:14px}
+  .tbl th,.tbl td{border-bottom:1px solid #1e2530;padding:8px 10px;text-align:left}
+  .tbl th{position:sticky;top:0;background:#0f141b;border-bottom:1px solid #263042}
+  .note{font-size:12px;opacity:.8}
+  .log{white-space:pre-wrap;background:#0a0d12;border:1px solid #1b2334;border-radius:12px;padding:12px;min-height:220px}
+  .right{text-align:right}
+  .sep{height:8px}
+  .ok{color:#84f089}
+  .warn{color:#ffd46a}
+  .err{color:#ff7b7b}
+  .kbd{font-family:ui-monospace,Menlo,Consolas,monospace;background:#0f1420;border:1px solid #1b2334;border-radius:6px;padding:1px 6px}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>FGO 이벤트 주회 시뮬레이터 – 웹 간편판</h1>
-      <div class="sub">
-        첫 로딩은 브라우저가 파이썬을 준비하느라 <b>10~25초</b> 걸릴 수 있어요. 준비되면 <b>사과 수량</b>과 아래 표의
-        <b>have / need</b>를 입력하고 <b>실행</b>을 누르세요. (AP/판=40 고정, 표=text+ascii 고정)
-      </div>
+<div class="wrap">
+  <h1>FGO 이벤트 주회 시뮬레이터 (Web)</h1>
 
-      <!-- 부팅 표시 -->
-      <div id="boot" class="card" style="padding:14px; margin:10px 0 18px;">
-        <div class="row">
-          <div class="grow">
-            <div><span class="loader"></span><b>Pyodide 로딩 중…</b> (인터넷 속도에 따라 10~25초)</div>
-            <div class="bar" style="margin-top:10px;"><i id="pbar"></i></div>
-            <div class="hint" id="bootmsg">파이썬 런타임 다운로드 중</div>
-          </div>
-          <span class="badge">CDN</span>
-        </div>
-      </div>
+  <div class="row">
+    <div class="pill">
+      <span class="muted">금사과</span><input id="apGold" type="number" min="0" step="1" value="0" class="small">
+    </div>
+    <div class="pill">
+      <span class="muted">은사과</span><input id="apSilver" type="number" min="0" step="1" value="0" class="small">
+    </div>
+    <div class="pill">
+      <span class="muted">청사과</span><input id="apBlue" type="number" min="0" step="1" value="0" class="small">
+    </div>
+    <div class="pill">
+      <span class="muted">동사과</span><input id="apCopper" type="number" min="0" step="1" value="0" class="small">
+    </div>
+    <div class="pill muted">AP/판은 40 고정, 표는 text+ascii 고정</div>
+  </div>
 
-      <!-- 사과 입력 -->
-      <div class="grp">
-        <div>
-          <label class="sm">금사과</label>
-          <input id="apple-gold" type="number" min="0" step="1" value="0">
-        </div>
-        <div>
-          <label class="sm">은사과</label>
-          <input id="apple-silver" type="number" min="0" step="1" value="0">
-        </div>
-        <div>
-          <label class="sm">청사과</label>
-          <input id="apple-blue" type="number" min="0" step="1" value="0">
-        </div>
-        <div>
-          <label class="sm">동사과</label>
-          <input id="apple-copper" type="number" min="0" step="1" value="0">
-        </div>
-        <span class="hint">사과는 시뮬레이션의 AP 풀을 직접 결정합니다.</span>
-      </div>
+  <div class="sep"></div>
 
-      <!-- 재료 표 -->
-      <div class="row" style="margin:12px 0">
-        <div class="grow">
-          <div class="toolbar">
-            <input id="search" type="text" placeholder="아이템 검색(이름 일부)" />
-            <span class="hint">표는 materials.json의 항목을 불러옵니다. (have/need만 수정)</span>
-            <span class="right badge">AP/판=40, text+ascii 고정</span>
-          </div>
-          <div class="tblwrap">
-            <table id="matTable">
-              <thead><tr><th>재료</th><th>tier</th><th>ap/개</th><th>use</th><th>have</th><th>need</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
-          <div class="toolbar">
-            <button id="runBtn" disabled>시뮬레이션 실행</button>
-            <button id="resetBtn" class="ghost" disabled>입력값 초기화</button>
-            <button id="dlBtn" class="ghost right" disabled>로그 다운로드</button>
-          </div>
-          <div class="hint">사과 입력칸 값은 materials.json의 ‘금사과/은사과/청사과/동사과’ <b>have</b>에도 자동 반영됩니다.</div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div class="row" style="gap:14px">
+        <div class="pill">
+          <span class="muted">아이템 검색(이름 일부)</span>
+          <input id="q" type="text" placeholder="예: 몬스터의 발톱">
         </div>
+        <div class="note">표는 기본 <code>materials.json</code> 항목을 불러옵니다. (have/need만 수정)</div>
       </div>
+      <div class="row" style="gap:8px">
+        <button id="btnRun">시뮬레이션 실행</button>
+      </div>
+    </div>
 
-      <pre id="out">출력 준비 중…</pre>
-      <div class="hint">문제 발생 시: 새로고침(F5) → 다시 실행. JSON 3개와 이 페이지를 같은 폴더에 올렸는지 확인해주세요.</div>
+    <div class="sep"></div>
+
+    <div class="note">
+      • <b>사과/묘목/프리즘/인연/종화</b>는 <span class="warn">재료 목록에서 제외</span>됩니다(사과는 상단 입력, 나머지는 계산 제외).<br>
+      • <b>QP</b>는 <b>100만 단위(M)</b>로 표기/입력됩니다. 예) 1530만 QP → <span class="kbd">15.3</span>
+    </div>
+
+    <div class="sep"></div>
+
+    <div style="max-height:380px;overflow:auto;border:1px solid #1e2530;border-radius:12px">
+      <table class="tbl" id="matTable">
+        <thead>
+          <tr>
+            <th style="width:28%">재료</th>
+            <th style="width:12%">tier</th>
+            <th style="width:12%">ap/개</th>
+            <th style="width:12%">use</th>
+            <th style="width:18%">have</th>
+            <th style="width:18%">need</th>
+          </tr>
+        </thead>
+        <tbody id="matBody"></tbody>
+      </table>
     </div>
   </div>
 
-  <script>
-    const setP = (pct, msg) => {
-      const el = document.querySelector('#pbar'); if(el) el.style.width = pct + '%';
-      const m  = document.querySelector('#bootmsg'); if(m && msg) m.textContent = msg;
-    };
-  </script>
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+  <div class="sep"></div>
 
-  <script>
-    // ===== 1) JSON 로드 =====
-    async function loadJsonFiles() {
-      const [materials, quests, items] = await Promise.all([
-        fetch('materials.json').then(r=>r.json()),
-        fetch('event_quests.json').then(r=>r.json()),
-        fetch('event_items.json').then(r=>r.json()),
-      ]);
-      return { materials, quests, items };
-    }
+  <div class="card">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div><b>결과 로그</b> <span id="status" class="muted">— 준비됨</span></div>
+      <div class="note">첫 로딩은 Pyodide 다운로드로 5–20초 걸릴 수 있어요. 이후엔 빠릅니다.</div>
+    </div>
+    <div class="sep"></div>
+    <div id="log" class="log">여기에 실행 로그가 표시됩니다.</div>
+  </div>
 
-    // ===== 2) materials 표 렌더링 (have/need 입력) & 사과 초기화 =====
-    let BASE = { materials:null, quests:null, items:null };
-    const APPLE_NAMES = ["금사과","은사과","청사과","동사과"];
-    const APPLE_TO_KEY = {"금사과":"gold","은사과":"silver","청사과":"blue","동사과":"copper"};
+</div>
 
-    function renderTable(filter='') {
-      const tbody = document.querySelector('#matTable tbody');
-      tbody.innerHTML = '';
-      const rows = BASE.materials.materials || [];
-      const kw = filter.trim();
-      for (const m of rows) {
-        const name = String(m.item||'');
-        if (kw && !name.includes(kw)) continue;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${name}</td>
-          <td>${m.tier??''}</td>
-          <td>${(m.ap_per_item??0).toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-          <td>${(String(m.use||'Y').toUpperCase()==='Y')?'Y':'N'}</td>
-          <td><input type="number" step="1" value="${m.have??0}" data-name="${name}" data-field="have"></td>
-          <td><input type="number" step="1" value="${m.need??0}" data-name="${name}" data-field="need"></td>
-        `;
-        tbody.appendChild(tr);
-      }
-    }
-
-    function initAppleInputsFromMaterials() {
-      const rows = BASE.materials.materials || [];
-      const map = new Map(rows.map(m=>[String(m.item||''), m]));
-      const get = (nm) => Number((map.get(nm)||{}).have||0);
-      document.querySelector('#apple-gold').value   = get("금사과");
-      document.querySelector('#apple-silver').value = get("은사과");
-      document.querySelector('#apple-blue').value   = get("청사과");
-      document.querySelector('#apple-copper').value = get("동사과");
-    }
-
-    function readEditsIntoMaterialsAndApples() {
-      // 1) 표 입력값 → materials에 반영 + lack 재계산
-      const map = new Map(BASE.materials.materials.map(m=>[String(m.item||''), m]));
-      const inputs = document.querySelectorAll('input[data-name]');
-      inputs.forEach(inp=>{
-        const name  = inp.getAttribute('data-name');
-        const field = inp.getAttribute('data-field');
-        const row = map.get(name);
-        if (!row) return;
-        const v = Number(inp.value);
-        row[field] = Number.isFinite(v) ? v : 0;
-      });
-      for (const m of BASE.materials.materials) {
-        const have = Number(m.have||0), need = Number(m.need||0);
-        m.lack = Math.max(need - have, 0);
-      }
-      // 2) 사과 입력 → materials의 사과 have도 동기화
-      const apples = {
-        gold:   Number(document.querySelector('#apple-gold').value||0),
-        silver: Number(document.querySelector('#apple-silver').value||0),
-        blue:   Number(document.querySelector('#apple-blue').value||0),
-        copper: Number(document.querySelector('#apple-copper').value||0),
-      };
-      for (const nm of APPLE_NAMES) {
-        const row = map.get(nm);
-        if (row) row.have = apples[APPLE_TO_KEY[nm]];
-      }
-      return apples; // 반환: 시뮬레이터에 직접 주입할 APPLE_COUNTS
-    }
-
-    function resetInputs() {
-      renderTable(document.querySelector('#search').value||'');
-      initAppleInputsFromMaterials();
-    }
-
-    // ===== 3) Pyodide 부팅 & 파일 쓰기 =====
-    let pyodide = null;
-    async function bootPyodide() {
-      setP(10,'파이썬 런타임 다운로드 중');
-      pyodide = await loadPyodide({
-        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/'
-      });
-      setP(60,'런타임 초기화…');
-      pyodide.FS.mkdirTree('/');
-      setP(80,'Python 스크립트 준비…');
-    }
-
-    async function writeFiles(applesOverride) {
-      pyodide.FS.writeFile('materials.json', JSON.stringify(BASE.materials), { encoding:'utf8' });
-      pyodide.FS.writeFile('event_quests.json', JSON.stringify(BASE.quests), { encoding:'utf8' });
-      pyodide.FS.writeFile('event_items.json', JSON.stringify(BASE.items), { encoding:'utf8' });
-      pyodide.FS.writeFile('apples.json', JSON.stringify(applesOverride), { encoding:'utf8' });
-    }
-
-    async function writeSimulatorPy() {
-      pyodide.FS.writeFile('simulator.py', window.SIMULATOR_PY_SOURCE.trimStart(), { encoding:'utf8' });
-    }
-
-    // ===== 4) 실행 =====
-    async function runSimulation() {
-      const out = document.querySelector('#out');
-      out.textContent = '실행 중… (브라우저에서 파이썬 코드가 돌아가는 중)';
-      document.querySelector('#runBtn').disabled = true;
-      try {
-        const apples = readEditsIntoMaterialsAndApples();
-        await writeFiles(apples);
-        await writeSimulatorPy();
-
-        const py = `
-import sys, json, importlib.util
-sys.argv = ["simulator.py",
-            "--materials","materials.json",
-            "--quests","event_quests.json",
-            "--items","event_items.json",
-            "--ap-cost","40",
-            "--table-format","text",
-            "--table-style","ascii",
-            "--log","run_log.txt"]
-
-spec = importlib.util.spec_from_file_location("simulator","simulator.py")
-simulator = importlib.util.module_from_spec(spec); spec.loader.exec_module(simulator)
-
-with open("apples.json","r",encoding="utf-8") as f:
-    apples = json.load(f)
-for k in ("gold","silver","blue","copper"):
-    if k in apples:
-        try: simulator.APPLE_COUNTS[k] = float(apples[k])
-        except: simulator.APPLE_COUNTS[k] = 0.0
-
-simulator.TABLE_FORMAT = "text"
-simulator.TABLE_STYLE  = "ascii"
-
-simulator.main()
-open("run_log.txt","r",encoding="utf-8").read()
-        `;
-        const log = await pyodide.runPythonAsync(py);
-        out.textContent = log || '(로그 비어 있음)';
-        document.querySelector('#dlBtn').disabled = false;
-      } catch (e) {
-        out.textContent = '에러 발생: ' + (e && e.message ? e.message : e);
-      } finally {
-        document.querySelector('#runBtn').disabled = false;
-      }
-    }
-
-    // ===== 5) 이벤트 바인딩 & 초기화 =====
-    (async () => {
-      try{
-        BASE = await loadJsonFiles();
-        renderTable();
-        initAppleInputsFromMaterials();
-        await bootPyodide();
-        document.querySelector('#boot').innerHTML = '<b class="ok">준비 완료!</b> 사과/아이템 수량을 입력하고 <b>시뮬레이션 실행</b>을 누르세요.';
-        document.querySelector('#runBtn').disabled = false;
-        document.querySelector('#resetBtn').disabled = false;
-        document.querySelector('#dlBtn').addEventListener('click', ()=>{
-          const blob = new Blob([document.querySelector('#out').textContent], {type:'text/plain;charset=utf-8'});
-          const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'run_log.txt' });
-          a.click(); URL.revokeObjectURL(a.href);
-        });
-        document.querySelector('#runBtn').addEventListener('click', runSimulation);
-        document.querySelector('#resetBtn').addEventListener('click', resetInputs);
-        document.querySelector('#search').addEventListener('input', (e)=> renderTable(e.target.value||''));
-      }catch(err){
-        document.querySelector('#boot').innerHTML = '<b class="err">초기화 실패:</b> '+err;
-      }
-    })();
-
-    // ===== 6) 시뮬레이터 파이썬 원본(v2.5) 삽입 =====
-    window.SIMULATOR_PY_SOURCE = `
+<!-- ────────────────────────────────────────────────────────────────────────
+     1) 파이썬 시뮬레이터 원본 코드 (그대로 보관)
+     ──────────────────────────────────────────────────────────────────────── -->
+<script id="py-sim" type="text/plain">
 # -*- coding: utf-8 -*-
 """
 FGO 이벤트 주회 시뮬레이터 (Pro v2.5 — 전체 주석/정렬/정밀 출력/표 렌더 개선 + 아이템명 검증)
 =============================================================================================
 
-변경 핵심 (v2.5)
-----------------
-- **아이템명 검증 추가**: event_quests.json / event_items.json / rarity_map 등에서
-  참조하는 아이템명이 materials.json의 재료명과 **매칭되지 않으면** 로그 상단에
-  경고 목록으로 알려줍니다(위치 예시 + 유사 이름 제안).
-- 표 렌더 안정화(모호폭 처리/ASCII 스타일/마크다운·CSV 지원)는 v2.4와 동일.
-- 표기 규칙: 일반 로그는 **소수점 2자리**, 최종 재료 현황은 **정수**.
-
-입력 파일 스키마(요지)
-----------------------
-- materials.json
-  - materials: [{item, tier, ap_per_item, have, need, lack, use}, ...]  ← **정렬 기준**
-  - rarity_map: {gold:[..], silver:[..], bronze:[..]}
-- event_quests.json
-  - event_quests: [
-      {event, case ∈ {"roulette","box","raid"},
-       stages: [
-         {stage, diff, drops: [{item, rate}, ...],
-          tickets?: {base, per_ce}, ce_drop_rate?,
-          box?: {gold/silver/bronze:{base}, items/contents?}
-         }, ...
-       ],
-       ce_drop_rate?, box_contents?
-      }, ...
-    ]
-- event_items.json
-  - event_items: [{event, case, need_tickets?, drops, exchanges?}, ...]
-    (또는 동일 키를 event_quests로 갖는 변형을 헨들링)
+(원본 설명 생략) — 웹에서 실행을 위해 main()은 sys.argv로 인자 주입해 호출합니다.
 """
 
 import json
@@ -332,60 +126,44 @@ import unicodedata
 import difflib
 from typing import Dict, List, Tuple, Optional
 
-# =============================================================================
-# 상수/전역 설정
-# =============================================================================
-
 APPLE_AP_BY_POOL = {"gold": 145.0, "silver": 73.0, "blue": 40.0, "copper": 10.0}
 APPLE_NAME_TO_POOL = {"금사과": "gold", "은사과": "silver", "청사과": "blue", "동사과": "copper"}
 APPLE_ITEM_NAMES = set(APPLE_NAME_TO_POOL.keys())
-APPLE_COUNTS = {"gold": 1000, "silver": 295, "blue": 2000, "copper": 502}
+APPLE_COUNTS = {"gold": 0, "silver": 0, "blue": 0, "copper": 0}
 NATURAL_AP = 0.0
 
 RARITY_MAP: Optional[Dict[str, set]] = None
 
-# 정렬 인덱스 — materials.json의 materials 배열 "등장 순서" 기반
-ITEM_SORT_INDEX: Dict[str, int] = {}   # 재료명 → 등장순 인덱스
-TIER_ORDER_INDEX: Dict[str, int] = {}  # tier명 → 등장순 인덱스
-ITEM_TO_TIER: Dict[str, str] = {}      # 재료명 → tier
+ITEM_SORT_INDEX: Dict[str, int] = {}
+TIER_ORDER_INDEX: Dict[str, int] = {}
+ITEM_TO_TIER: Dict[str, str] = {}
 
-# 룰렛 예장(CE) 관련
 CE_BASE_BONUS = 7
 CE_MAX_BONUS = 12
 CE_COPIES_PER_PLUS = 4
 CE_STATE: Dict[str, dict] = {}
 
-# 선택 기능: 이벤트명 부분 포함 시 1판당 고정 수익
 SPECIAL_PER_RUN_YIELDS = {}
 
-# 현재 판(run) 변동 기록
 CURRENT_RUN_GAINS: Optional[Dict[str, float]] = None
 _AGT_CALL_DEPTH = 0
 
-# 출력/표 스타일
-TABLE_FORMAT = "text"      # "text" | "md" | "csv"
-TABLE_STYLE  = "box"       # 텍스트 표일 때: 'box' | 'ascii'
-AMBIGUOUS_WIDE = False     # 모호폭(A) 폭=2로 처리할지 여부
-ARROW  = "→"               # 호환 모드에서 '->'로 변경 가능
-BULLET = "·"               # 호환 모드에서 '-'로 변경 가능
+TABLE_FORMAT = "text"
+TABLE_STYLE  = "ascii"
+AMBIGUOUS_WIDE = False
+ARROW  = "->"
+BULLET = "-"
 
-BOX_CHARS   = {"top":("┌","┬","┐"), "mid":("├","┼","┤"), "bot":("└","┴","┘"), "h":"─", "v":"│"}
-ASCII_CHARS = {"top":("+","+","+"), "mid":("+","+","+"), "bot":("+","+","+"), "h":"-", "v":"|"}
-
-# =============================================================================
-# 숫자 포맷 & 공통 유틸
-# =============================================================================
+BOX_CHARS   = {"top":("+","+","+"), "mid":("+","+","+"), "bot":("+","+","+"), "h":"-", "v":"|"}
+ASCII_CHARS = BOX_CHARS
 
 def r2(x: float) -> float:
-    """float → 소수점 2자리 반올림 숫자"""
     return round(float(x), 2)
 
 def f2(x: float) -> str:
-    """float → '1,234.56' 포맷 문자열"""
     return f"{float(x):,.2f}"
 
 def f2s(x) -> str:
-    """float → '∞' 처리 포함 2자리 포맷 문자열"""
     try:
         if x == float("inf") or str(x).lower() == "inf":
             return "∞"
@@ -394,29 +172,21 @@ def f2s(x) -> str:
         return str(x)
 
 def f0(x) -> str:
-    """float → 정수 반올림 '1,234' 포맷 문자열"""
     try:
         return f"{int(round(float(x))):,}"
     except Exception:
         return str(x)
 
 def load_json(path: str) -> dict:
-    """경로에서 UTF-8 JSON 로드"""
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
-
-# =============================================================================
-# CJK 폭 인지 길이 계산
-# =============================================================================
 
 try:
     from wcwidth import wcswidth as _lib_wcswidth  # type: ignore
     def _display_width(s: str) -> int:
-        """wcwidth 라이브러리가 있으면 사용"""
         return _lib_wcswidth(s)
 except Exception:
     def _display_width(s: str) -> int:
-        """동아시아 폭(F/W/A) 고려한 폭 계산(대체 구현)"""
         width = 0
         for ch in s:
             if unicodedata.combining(ch):
@@ -428,12 +198,7 @@ except Exception:
                 width += 1
         return width
 
-# =============================================================================
-# materials.json → 인덱스/희귀도/정렬 초기화
-# =============================================================================
-
 def to_material_index(materials_json: dict) -> Dict[str, dict]:
-    """materials 배열 → {이름:{ap,lack,use}} 인덱스 구성"""
     index: Dict[str, dict] = {}
     for m in materials_json.get("materials", []):
         name = str(m.get("item") or "").strip()
@@ -449,7 +214,6 @@ def to_material_index(materials_json: dict) -> Dict[str, dict]:
     return index
 
 def init_rarity_map_from_materials(materials_json: dict) -> None:
-    """rarity_map(gold/silver/bronze) 초기화"""
     global RARITY_MAP
     rm = materials_json.get("rarity_map")
     if isinstance(rm, dict):
@@ -462,7 +226,6 @@ def init_rarity_map_from_materials(materials_json: dict) -> None:
         RARITY_MAP = {"gold": set(), "silver": set(), "bronze": set()}
 
 def init_sort_index_from_materials(materials_json: dict) -> None:
-    """정렬용: materials 등장 순서/티어 순서 테이블 구성"""
     global ITEM_SORT_INDEX, TIER_ORDER_INDEX, ITEM_TO_TIER
     ITEM_SORT_INDEX = {}
     TIER_ORDER_INDEX = {}
@@ -482,28 +245,21 @@ def default_rarity_map() -> Dict[str, set]:
     return RARITY_MAP if RARITY_MAP is not None else {"gold": set(), "silver": set(), "bronze": set()}
 
 def classify_rarity(item: str, rarity_map: Dict[str, set]) -> Optional[str]:
-    """아이템을 rarity_map 기준으로 gold/silver/bronze 중 하나로 분류"""
     for rarity in ("gold", "silver", "bronze"):
         if item in rarity_map[rarity]:
             return rarity
     return None
 
 def _material_sort_key(name: str):
-    """정렬키: materials 등장순 → 티어순 → 이름"""
     idx = ITEM_SORT_INDEX.get(name, 10**9)
     tier = ITEM_TO_TIER.get(name, "")
     to = TIER_ORDER_INDEX.get(tier, 10**9)
     return (idx, to, name)
 
-# =============================================================================
-# 재료 상태 조회/갱신
-# =============================================================================
-
 def mat_rec(item: str, materials_index: Dict[str, dict]) -> Optional[dict]:
     return materials_index.get(item)
 
 def mat_ap(item: str, materials_index: Dict[str, dict], respect_use_flag: bool=True) -> float:
-    """아이템 1개당 AP가치(부족>0 & use=Y일 때만 유효)"""
     rec = mat_rec(item, materials_index)
     if not rec:
         return 0.0
@@ -522,16 +278,11 @@ def mat_usable(item: str, materials_index: Dict[str, dict]) -> bool:
     return (rec["use"] if rec is not None else True)
 
 def snapshot_lack(materials_index: Dict[str, dict], respect_use_flag: bool=True) -> Dict[str, float]:
-    """현재 부족량 스냅샷(정렬/표시용)"""
     return {
         name: float(rec.get("lack") or 0.0)
         for name, rec in materials_index.items()
         if not (respect_use_flag and not rec.get("use", True))
     }
-
-# =============================================================================
-# (신규) 아이템명 검증
-# =============================================================================
 
 def _iter_item_blocks(items_def: dict) -> List[dict]:
     if isinstance(items_def.get("event_items"), list):
@@ -541,7 +292,6 @@ def _iter_item_blocks(items_def: dict) -> List[dict]:
     return []
 
 def _collect_from_box_contents(container: dict, where: str, report):
-    """container: {"gold":[{item,..}], "silver":[..], "bronze":[..]}"""
     if not isinstance(container, dict):
         return
     for rar in ("gold", "silver", "bronze"):
@@ -551,85 +301,58 @@ def _collect_from_box_contents(container: dict, where: str, report):
                 report(item, f"{where}/box:{rar}")
 
 def validate_item_names(materials_index: Dict[str, dict], quests_def: dict, items_def: dict) -> Dict[str, List[str]]:
-    """
-    외부 JSON들이 참조하는 아이템명이 materials.json에 존재하는지 검증.
-
-    Returns:
-        {unknown_item: [위치 예시,...]}  (최대 5곳까지 샘플링)
-    """
     known = set(materials_index.keys()) | APPLE_ITEM_NAMES | {"교환티켓"}
     unknown: Dict[str, List[str]] = {}
-
     def report(name: str, where: str):
-        if not name:
-            return
+        if not name: return
         n = name.strip()
-        if n in known:
-            return
-        # 아직 모르는 이름이면 위치 누적(최대 5개)
+        if n in known: return
         lst = unknown.setdefault(n, [])
-        if len(lst) < 5 and where not in lst:
-            lst.append(where)
+        if len(lst) < 5 and where not in lst: lst.append(where)
 
-    # 1) rarity_map 내 이름도 검사(오타 방지)
     rmap = default_rarity_map()
     for rar in ("gold", "silver", "bronze"):
         for nm in rmap.get(rar, []):
             if nm not in known:
                 report(nm, f"materials.rarity_map.{rar}")
 
-    # 2) quests_def 검사
     for e in quests_def.get("event_quests", []):
         ev = str(e.get("event") or "").strip()
         cs = str(e.get("case") or "").lower()
-        # drops
         for st in e.get("stages", []):
             stg = str(st.get("stage") or "").strip()
             dff = str(st.get("diff") or "").strip()
             for d in st.get("drops", []):
                 item = str(d.get("item") or "").strip()
-                if item:
-                    report(item, f"event_quests/{ev}/{cs}/{stg}[{dff}]/drops")
-            # stage-level box contents(items/contents)
+                if item: report(item, f"event_quests/{ev}/{cs}/{stg}[{dff}]/drops")
             box = st.get("box") or {}
             for key in ("items", "contents"):
                 if key in box and isinstance(box[key], dict):
                     _collect_from_box_contents(box[key], f"event_quests/{ev}/{cs}/{stg}[{dff}]", report)
-        # event-level box_contents
         if isinstance(e.get("box_contents"), dict):
             _collect_from_box_contents(e["box_contents"], f"event_quests/{ev}/{cs}", report)
 
-    # quests_def top-level box_contents (있다면)
     if isinstance(quests_def.get("box_contents"), dict):
         _collect_from_box_contents(quests_def["box_contents"], "event_quests/top", report)
 
-    # 3) items_def 검사
     for blk in _iter_item_blocks(items_def):
         ev = str(blk.get("event") or "").strip()
         cs = str(blk.get("case") or "").lower()
         for d in blk.get("drops", []):
             item = str(d.get("item") or "").strip()
-            if item:
-                report(item, f"event_items/{ev}/{cs}/drops")
+            if item: report(item, f"event_items/{ev}/{cs}/drops")
         for ex in blk.get("exchanges", []) or []:
             for opt in (ex.get("options") or []):
                 item = str(opt or "").strip()
-                if item:
-                    report(item, f"event_items/{ev}/{cs}/exchanges")
-        # box case의 drops도 검사
+                if item: report(item, f"event_items/{ev}/{cs}/exchanges")
         if cs == "box":
             for d in blk.get("drops", []):
                 item = str(d.get("item") or "").strip()
-                if item:
-                    report(item, f"event_items/{ev}/{cs}/box_drops")
+                if item: report(item, f"event_items/{ev}/{cs}/box_drops")
 
     return unknown
 
-# =============================================================================
-# 표 출력 (text/md/csv)
-# =============================================================================
-
-def _draw_line(widths, left="┌", mid="┬", right="┐", fill="─"):
+def _draw_line(widths, left="+", mid="+", right="+", fill="-"):
     parts = [left]
     for i, w in enumerate(widths):
         parts.append(fill * (w + 2))
@@ -650,13 +373,12 @@ def _pad_cell(text: str, width: int, align: str) -> str:
 def _print_table_text(write_line, headers, rows, aligns=None):
     if aligns is None:
         aligns = ["left"] * len(headers)
-    chars = BOX_CHARS if TABLE_STYLE == "box" else ASCII_CHARS
+    chars = ASCII_CHARS
     v = chars["v"]
     widths = []
     for col in range(len(headers)):
         maxw = _display_width(str(headers[col]))
-        for r in rows:
-            maxw = max(maxw, _display_width(str(r[col])))
+        for r in rows: maxw = max(maxw, _display_width(str(r[col])))
         widths.append(maxw)
     write_line(_draw_line(widths, *chars["top"], fill=chars["h"]))
     write_line(v + v.join(_pad_cell(str(h), widths[i], "center") for i, h in enumerate(headers)) + v)
@@ -666,13 +388,11 @@ def _print_table_text(write_line, headers, rows, aligns=None):
     write_line(_draw_line(widths, *chars["bot"], fill=chars["h"]))
 
 def _print_table_md(write_line, headers, rows, aligns=None):
-    if aligns is None:
-        aligns = ["left"] * len(headers)
+    if aligns is None: aligns = ["left"] * len(headers)
     write_line("| " + " | ".join(str(h) for h in headers) + " |")
     align_map = {"left": ":---", "right": "---:", "center": ":---:"}
     write_line("| " + " | ".join(align_map.get(a, ":---") for a in aligns) + " |")
-    for r in rows:
-        write_line("| " + " | ".join(str(c) for c in r) + " |")
+    for r in rows: write_line("| " + " | ".join(str(c) for c in r) + " |")
 
 def _csv_escape(s: str) -> str:
     s = str(s)
@@ -682,25 +402,16 @@ def _csv_escape(s: str) -> str:
 
 def _print_table_csv(write_line, headers, rows, aligns=None):
     write_line(",".join(_csv_escape(h) for h in headers))
-    for r in rows:
-        write_line(",".join(_csv_escape(c) for c in r))
+    for r in rows: write_line(",".join(_csv_escape(c) for c in r))
 
 def _print_table(write_line, headers, rows, aligns=None):
-    if TABLE_FORMAT == "md":
-        _print_table_md(write_line, headers, rows, aligns)
-    elif TABLE_FORMAT == "csv":
-        _print_table_csv(write_line, headers, rows, aligns)
-    else:
-        _print_table_text(write_line, headers, rows, aligns)
+    if TABLE_FORMAT == "md": _print_table_md(write_line, headers, rows, aligns)
+    elif TABLE_FORMAT == "csv": _print_table_csv(write_line, headers, rows, aligns)
+    else: _print_table_text(write_line, headers, rows, aligns)
 
-def _print_gain_table(write_line, current_gains: Dict[str, float],
-                      lack_before: Dict[str, float],
-                      lack_after: Dict[str, float],
-                      cum_gained: Dict[str, float]):
-    if not current_gains:
-        write_line("  (변동 없음)")
-        return
-    headers = ["항목", "+획득", "누적", "부족(전→후)"]
+def _print_gain_table(write_line, current_gains: Dict[str, float], lack_before: Dict[str, float], lack_after: Dict[str, float], cum_gained: Dict[str, float]):
+    if not current_gains: write_line("  (변동 없음)"); return
+    headers = ["항목", "+획득", "누적", "부족(전->후)"]
     names_sorted = sorted(current_gains.keys(), key=_material_sort_key)
     rows = []
     for name in names_sorted:
@@ -722,103 +433,62 @@ def _print_eff_table(write_line, best_list: List[dict], ap_cost_per_run: float):
         rows.append([ev, f"{st} [{df}]", f2s(total_eff)])
     _print_table(write_line, headers, rows, aligns=["left", "left", "right"])
 
-# =============================================================================
-# 로깅
-# =============================================================================
-
 class Logger:
-    """파일에 기록(선택적으로 콘솔 동시 출력)"""
     def __init__(self, filepath: str, tee: bool=False):
         self.filepath = filepath
         self.tee = tee
         self.f = open(filepath, "w", encoding="utf-8")
     def write(self, line: str=""):
-        self.f.write(line + "\\n")
-        if self.tee:
-            print(line)
+        self.f.write(line + "\n")
+        if self.tee: print(line)
     def close(self):
-        try:
-            self.f.flush()
-            self.f.close()
-        except Exception:
-            pass
+        try: self.f.flush(); self.f.close()
+        except Exception: pass
 
-# =============================================================================
-# 획득 반영 (누적/부족 감소/변동 기록)
-# =============================================================================
-
-def apply_gain_and_track(item: str, qty: float, materials_index: Dict[str, dict],
-                         cum_gained: Dict[str, float], respect_use_flag: bool=True) -> None:
-    """
-    획득량을 누적/부족에 반영하고, 이번 판 변동 테이블에도 기록한다.
-    (재귀/중첩 호출 방지용 얕은 락 포함)
-    """
+def apply_gain_and_track(item: str, qty: float, materials_index: Dict[str, dict], cum_gained: Dict[str, float], respect_use_flag: bool=True) -> None:
     global CURRENT_RUN_GAINS, _AGT_CALL_DEPTH
     _AGT_CALL_DEPTH += 1
     try:
-        if _AGT_CALL_DEPTH > 1:
-            return
+        if _AGT_CALL_DEPTH > 1: return
         if qty > 0:
             cum_gained[item] = cum_gained.get(item, 0.0) + float(qty)
             if CURRENT_RUN_GAINS is not None:
                 CURRENT_RUN_GAINS[item] = CURRENT_RUN_GAINS.get(item, 0.0) + float(qty)
         rec = mat_rec(item, materials_index)
-        if rec is None or (respect_use_flag and not rec.get("use", True)):
-            return
+        if rec is None or (respect_use_flag and not rec.get("use", True)): return
         before = float(rec.get("lack") or 0.0)
         after = before - float(qty)
         rec["lack"] = after if after > 0 else 0.0
     finally:
         _AGT_CALL_DEPTH -= 1
 
-def _apply_special_per_run_yields(event_name: str, materials_index: Dict[str, dict],
-                                  cum_gained: Dict[str, float], respect_use_flag: bool=True) -> None:
-    """특정 이벤트명 포함 시, 고정 per-run 보상 적용(옵션)"""
+def _apply_special_per_run_yields(event_name: str, materials_index: Dict[str, dict], cum_gained: Dict[str, float], respect_use_flag: bool=True) -> None:
     for key, yields_ in SPECIAL_PER_RUN_YIELDS.items():
         if key in str(event_name):
             for row in yields_:
-                apply_gain_and_track(str(row["item"]), float(row["qty"]),
-                                     materials_index, cum_gained, respect_use_flag)
+                apply_gain_and_track(str(row["item"]), float(row["qty"]), materials_index, cum_gained, respect_use_flag)
 
-# =============================================================================
-# 교환권 배분/가치 계산
-# =============================================================================
-
-def allocate_exchange_tokens_ap_first(token_qty: float, per_token: float, options: List[str],
-                                      materials_index: Dict[str, dict], respect_use_flag: bool=True) -> List[Tuple[str, float]]:
-    """
-    교환티켓을 AP가치가 높은 아이템부터 부족량 한도 내에서 배분한다.
-    Returns: [(아이템, 배분수량), ...]
-    """
+def allocate_exchange_tokens_ap_first(token_qty: float, per_token: float, options: List[str], materials_index: Dict[str, dict], respect_use_flag: bool=True) -> List[Tuple[str, float]]:
     candidates = []
     for it in options:
-        if not mat_usable(it, materials_index):
-            continue
-        if mat_lack(it, materials_index) <= 0:
-            continue
+        if not mat_usable(it, materials_index): continue
+        if mat_lack(it, materials_index) <= 0: continue
         apv = mat_ap(it, materials_index, respect_use_flag)
         candidates.append((it, apv, mat_lack(it, materials_index)))
     candidates.sort(key=lambda x: x[1], reverse=True)
     remain = token_qty * per_token
     allocation = []
     for it, _, lack in candidates:
-        if remain <= 0:
-            break
+        if remain <= 0: break
         room = max(lack, 0.0)
-        if room <= 0:
-            continue
+        if room <= 0: continue
         take = min(remain, room)
         if take > 0:
             allocation.append((it, take))
             remain -= take
     return allocation
 
-# =============================================================================
-# 박스/룰렛/스테이지 가치 계산 유틸
-# =============================================================================
-
 def get_items_block(event_name: str, items_def: dict, case: str) -> Optional[dict]:
-    """event_items.json에서 (event, case) 블록 추출"""
     target = str(event_name).strip()
     for b in _iter_item_blocks(items_def):
         if str(b.get("event") or "").strip() == target and str(b.get("case") or "").lower() == case:
@@ -826,51 +496,36 @@ def get_items_block(event_name: str, items_def: dict, case: str) -> Optional[dic
     return None
 
 def extract_need_tickets_from_items(event_name: str, items_def: dict, default: float=600.0) -> float:
-    """룰렛 상자 1회 오픈에 필요한 티켓 수(없으면 기본값)"""
     blk = get_items_block(event_name, items_def, case="roulette")
-    if not blk:
-        return default
-    try:
-        return float(blk.get("need_tickets") or default)
-    except Exception:
-        return default
+    if not blk: return default
+    try: return float(blk.get("need_tickets") or default)
+    except Exception: return default
 
-def compute_per_box_value_and_refund(event_name: str, items_def: dict, materials_index: Dict[str, dict],
-                                     respect_use_flag: bool=True, apple_ap_map: Dict[str, float]=None) -> Tuple[float, float, List[dict]]:
-    """
-    룰렛 1상자 오픈 시 평균 AP가치와 사과 환급 AP를 계산
-    Returns: (per_box_value, apple_refund_ap, details)
-    """
+def compute_per_box_value_and_refund(event_name: str, items_def: dict, materials_index: Dict[str, dict], respect_use_flag: bool=True, apple_ap_map: Dict[str, float]=None) -> Tuple[float, float, List[dict]]:
     if apple_ap_map is None:
         apple_ap_map = {k: APPLE_AP_BY_POOL[v] for k, v in APPLE_NAME_TO_POOL.items()}
     blk = get_items_block(event_name, items_def, case="roulette")
     per_box = 0.0
     refund = 0.0
     details = []
-    if not blk:
-        return 0.0, 0.0, details
+    if not blk: return 0.0, 0.0, details
     token_name = None
     token_rate = 0.0
     for d in blk.get("drops", []):
         item = str(d.get("item") or "")
         rate = float(d.get("rate") or 0.0)
-        if not item:
-            continue
+        if not item: continue
         if item in apple_ap_map:
-            refund += rate * apple_ap_map[item]
-            continue
+            refund += rate * apple_ap_map[item]; continue
         if item == "교환티켓":
-            token_name = item
-            token_rate = rate
-            continue
+            token_name = item; token_rate = rate; continue
         apv = mat_ap(item, materials_index, respect_use_flag)
         val = apv * rate
         per_box += val
         details.append({"kind": "drop", "item": item, "qty_per_box": rate, "ap_per_item": apv, "ap_value": r2(val)})
     if token_name and token_rate > 0:
         for ex in blk.get("exchanges", []):
-            if str(ex.get("token")) != token_name:
-                continue
+            if str(ex.get("token")) != token_name: continue
             per_token = float(ex.get("per_token") or 1.0)
             options = [str(x) for x in ex.get("options", []) if x]
             alloc = allocate_exchange_tokens_ap_first(token_rate, per_token, options, materials_index, respect_use_flag)
@@ -882,36 +537,26 @@ def compute_per_box_value_and_refund(event_name: str, items_def: dict, materials
     return r2(per_box), r2(refund), details
 
 def tickets_per_run(stage_def: dict, ce_count: int) -> float:
-    """해당 스테이지 1회 클리어 시 얻는 룰렛 티켓 수(CE 보너스 반영)"""
     t = stage_def.get("tickets") or {}
     return float(t.get("base") or 0.0) + float(t.get("per_ce") or 0.0) * ce_count
 
 def stage_value_per_run(stage_drops: List[dict], materials_index: Dict[str, dict], respect_use_flag: bool=True) -> float:
-    """스테이지 드랍 기대 AP가치의 합"""
     val = 0.0
     for d in stage_drops:
         item = str(d.get("item") or ""); rate = float(d.get("rate") or 0.0)
-        if not item:
-            continue
+        if not item: continue
         val += mat_ap(item, materials_index, respect_use_flag) * rate
     return val
 
-def default_rarity_sum(event_name: str, items_def: dict, materials_index: Dict[str, dict],
-                       respect_use_flag: bool=True) -> Tuple[float, float, float, str, List[dict]]:
-    """
-    event_items.json 의 box case 드랍을 rarity_map 기준으로
-    gold/silver/bronze 그룹 AP가치 합으로 환산
-    """
+def default_rarity_sum(event_name: str, items_def: dict, materials_index: Dict[str, dict], respect_use_flag: bool=True) -> Tuple[float, float, float, str, List[dict]]:
     blk = get_items_block(event_name, items_def, case="box")
-    if not blk:
-        return 0.0, 0.0, 0.0, "none", []
+    if not blk: return 0.0, 0.0, 0.0, "none", []
     rarity_map = default_rarity_map()
     sum_gold = sum_silver = sum_bronze = 0.0
     dbg = []
     for d in blk.get("drops", []):
         item = str(d.get("item") or ""); rate = float(d.get("rate") or 0.0)
-        if not item:
-            continue
+        if not item: continue
         apv = mat_ap(item, materials_index, respect_use_flag)
         rar = classify_rarity(item, rarity_map)
         val = apv * rate
@@ -922,83 +567,57 @@ def default_rarity_sum(event_name: str, items_def: dict, materials_index: Dict[s
     return r2(sum_gold), r2(sum_silver), r2(sum_bronze), "event_items", dbg
 
 def _fetch_box_contents(stage_def: dict, event_block: dict, quests_def: dict) -> Dict[str, List[dict]]:
-    """event_quests에서 box contents 우선 추출(스테이지→이벤트→최상위)"""
     box = stage_def.get("box") or {}
-    if isinstance(box.get("items"), dict):
-        return box["items"]
-    if isinstance(box.get("contents"), dict):
-        return box["contents"]
-    if isinstance(event_block.get("box_contents"), dict):
-        return event_block["box_contents"]
-    if isinstance(quests_def.get("box_contents"), dict):
-        return quests_def["box_contents"]
+    if isinstance(box.get("items"), dict): return box["items"]
+    if isinstance(box.get("contents"), dict): return box["contents"]
+    if isinstance(event_block.get("box_contents"), dict): return event_block["box_contents"]
+    if isinstance(quests_def.get("box_contents"), dict): return quests_def["box_contents"]
     return {}
 
 def _rarity_sum_ap(lst: List[dict], materials_index: Dict[str, dict], respect_use_flag: bool=True) -> float:
-    """한 rarity 그룹의 항목 리스트 → AP가치 합"""
-    if not lst:
-        return 0.0
+    if not lst: return 0.0
     total = 0.0
     has_qty = any('qty_per_box' in (x or {}) for x in lst)
     has_rate = any('rate' in (x or {}) for x in lst)
     n = len(lst)
     for x in lst or []:
         item = str((x or {}).get("item") or "")
-        if not item:
-            continue
-        if has_qty:
-            qty = float((x or {}).get("qty_per_box") or 0.0)
-        elif has_rate:
-            qty = float((x or {}).get("rate") or 0.0)
-        else:
-            qty = 1.0 / n if n > 0 else 0.0
+        if not item: continue
+        if has_qty: qty = float((x or {}).get("qty_per_box") or 0.0)
+        elif has_rate: qty = float((x or {}).get("rate") or 0.0)
+        else: qty = 1.0 / n if n > 0 else 0.0
         total += mat_ap(item, materials_index, respect_use_flag) * qty
     return total
 
 def _build_box_contents_from_items_json(event_name: str, items_def: dict) -> Dict[str, List[dict]]:
-    """
-    event_items.json 만으로 gold/silver/bronze 그룹을 구성(스테이지 정의에 없을 때 fallback)
-    """
     blk = get_items_block(event_name, items_def, case="box")
-    if not blk:
-        return {}
+    if not blk: return {}
     rarity_map = default_rarity_map()
     groups = {"gold": [], "silver": [], "bronze": []}
     for d in blk.get("drops", []):
         item = str(d.get("item") or "").strip()
-        if not item:
-            continue
+        if not item: continue
         rar = classify_rarity(item, rarity_map)
-        if rar not in ("gold", "silver", "bronze"):
-            continue
+        if rar not in ("gold", "silver", "bronze"): continue
         entry = {"item": item}
         if "qty_per_box" in d:
-            try:
-                entry["qty_per_box"] = float(d.get("qty_per_box") or 0.0)
-            except Exception:
-                entry["qty_per_box"] = 0.0
+            try: entry["qty_per_box"] = float(d.get("qty_per_box") or 0.0)
+            except Exception: entry["qty_per_box"] = 0.0
         elif "rate" in d:
-            try:
-                entry["rate"] = float(d.get("rate") or 0.0)
-            except Exception:
-                entry["rate"] = 0.0
+            try: entry["rate"] = float(d.get("rate") or 0.0)
+            except Exception: entry["rate"] = 0.0
         groups[rar].append(entry)
     for rar in ("gold", "silver", "bronze"):
         lst = groups[rar]
-        if not lst:
-            continue
+        if not lst: continue
         has_qty = any("qty_per_box" in x for x in lst)
         has_rate = any("rate" in x for x in lst)
         if not has_qty and not has_rate:
             n = len(lst)
-            for x in lst:
-                x["rate"] = 1.0 / n if n > 0 else 0.0
+            for x in lst: x["rate"] = 1.0 / n if n > 0 else 0.0
     return groups
 
-def compute_box_event_best_stage(event_name: str, quests_def: dict, items_def: dict,
-                                 materials_index: Dict[str, dict], ap_cost_per_run: float,
-                                 prefer_diff: Optional[str], respect_use_flag: bool=True) -> Optional[dict]:
-    """박스 이벤트에서 스테이지별 (스테이지드랍+박스가치)/AP 최댓값 선택"""
+def compute_box_event_best_stage(event_name: str, quests_def: dict, items_def: dict, materials_index: Dict[str, dict], ap_cost_per_run: float, prefer_diff: Optional[str], respect_use_flag: bool=True) -> Optional[dict]:
     events = quests_def.get("event_quests", [])
     candidates = []
     for e in events:
@@ -1034,12 +653,10 @@ def compute_box_event_best_stage(event_name: str, quests_def: dict, items_def: d
                             "event_items_dbg": dbg_rows}
             })
         break
-    if not candidates:
-        return None
+    if not candidates: return None
     if prefer_diff:
         pref = [c for c in candidates if str(c.get("diff") or "") == str(prefer_diff)]
-        if pref:
-            return max(pref, key=lambda x: float(x["total_eff"]))
+        if pref: return max(pref, key=lambda x: float(x["total_eff"]))
     return max(candidates, key=lambda x: float(x["total_eff"]))
 
 def _get_event_block(quests_def: dict, event_name: str, case: str) -> Optional[dict]:
@@ -1048,13 +665,7 @@ def _get_event_block(quests_def: dict, event_name: str, case: str) -> Optional[d
             return e
     return None
 
-def choose_best_stage_by_total_eff_roulette(event_name: str, quests_def: dict, items_def: dict,
-                                            ce_count: int, need_tickets_default: float,
-                                            ap_cost_per_run: float, materials_index: Dict[str, dict],
-                                            respect_use_flag: bool=True) -> Optional[dict]:
-    """
-    룰렛 이벤트: (스테이지드랍/AP + (상자AP가치 / 유효AP상자)) 최댓값 스테이지 선택
-    """
+def choose_best_stage_by_total_eff_roulette(event_name: str, quests_def: dict, items_def: dict, ce_count: int, need_tickets_default: float, ap_cost_per_run: float, materials_index: Dict[str, dict], respect_use_flag: bool=True) -> Optional[dict]:
     need_tk = extract_need_tickets_from_items(event_name, items_def, default=need_tickets_default)
     per_box_value, apple_refund_ap, box_details = compute_per_box_value_and_refund(event_name, items_def, materials_index, respect_use_flag)
     events = quests_def.get("event_quests", []); candidates = []
@@ -1087,15 +698,11 @@ def choose_best_stage_by_total_eff_roulette(event_name: str, quests_def: dict, i
                 "box_details": box_details
             })
         break
-    if not candidates:
-        return None
-    def key_fn(x):
-        return float("inf") if x["total_eff"] == float("inf") else float(x["total_eff"])
+    if not candidates: return None
+    def key_fn(x): return float("inf") if x["total_eff"] == float("inf") else float(x["total_eff"])
     return max(candidates, key=key_fn)
 
-def compute_raid_best_stage(event_name: str, quests_def: dict, materials_index: Dict[str, dict],
-                            ap_cost_per_run: float, respect_use_flag: bool=True, prefer_diff: Optional[str]=None) -> Optional[dict]:
-    """레이드: 스테이지드랍/AP 최댓값"""
+def compute_raid_best_stage(event_name: str, quests_def: dict, materials_index: Dict[str, dict], ap_cost_per_run: float, respect_use_flag: bool=True, prefer_diff: Optional[str]=None) -> Optional[dict]:
     events = quests_def.get("event_quests", []); candidates = []
     for e in events:
         if str(e.get("event") or "") != event_name or str(e.get("case") or "").lower() != "raid":
@@ -1107,119 +714,80 @@ def compute_raid_best_stage(event_name: str, quests_def: dict, materials_index: 
                                "stage_val_per_run": r2(stage_val), "stage_eff_per_ap": r2(stage_eff),
                                "drops": st.get("drops", [])})
         break
-    if not candidates:
-        return None
+    if not candidates: return None
     if prefer_diff:
         pref = [c for c in candidates if str(c.get("diff") or "") == str(prefer_diff)]
-        if pref:
-            return max(pref, key=lambda x: float(x["stage_eff_per_ap"]))
+        if pref: return max(pref, key=lambda x: float(x["stage_eff_per_ap"]))
     return max(candidates, key=lambda x: float(x["stage_eff_per_ap"]))
 
-# =============================================================================
-# 1판 적용(드랍/룰렛/박스)
-# =============================================================================
-
-def _open_roulette_boxes_and_apply(event_name: str, num_boxes: int, items_def: dict,
-                                   materials_index: Dict[str, dict], cum_gained: Dict[str, float],
-                                   respect_use_flag: bool=True):
-    """룰렛 상자 num_boxes개 오픈 후 드랍/교환 반영"""
-    if num_boxes <= 0:
-        return
+def _open_roulette_boxes_and_apply(event_name: str, num_boxes: int, items_def: dict, materials_index: Dict[str, dict], cum_gained: Dict[str, float], respect_use_flag: bool=True):
+    if num_boxes <= 0: return
     blk = get_items_block(event_name, items_def, case="roulette")
-    if not blk:
-        return
+    if not blk: return
     token_name = None
     token_rate = 0.0
     for d in blk.get("drops", []):
         item = str(d.get("item") or "")
         rate = float(d.get("rate") or 0.0)
-        if not item:
-            continue
-        if item in APPLE_ITEM_NAMES:
-            continue
+        if not item: continue
+        if item in APPLE_ITEM_NAMES: continue
         if item == "교환티켓":
-            token_name = item
-            token_rate = rate
-            continue
+            token_name = item; token_rate = rate; continue
         apply_gain_and_track(item, rate * num_boxes, materials_index, cum_gained, respect_use_flag)
     if token_name and token_rate > 0:
         total_tokens = token_rate * num_boxes
         for ex in blk.get("exchanges", []):
-            if str(ex.get("token")) != token_name:
-                continue
+            if str(ex.get("token")) != token_name: continue
             per_token = float(ex.get("per_token") or 1.0)
             options = [str(x) for x in ex.get("options", []) if x]
             alloc = allocate_exchange_tokens_ap_first(total_tokens, per_token, options, materials_index, respect_use_flag)
             for it, qty in alloc:
                 apply_gain_and_track(it, qty, materials_index, cum_gained, respect_use_flag)
 
-def _apply_stage_drops(stage_def: dict, materials_index: Dict[str, dict],
-                       cum_gained: Dict[str, float], respect_use_flag: bool=True):
-    """스테이지 기본 드랍 1회분 적용"""
+def _apply_stage_drops(stage_def: dict, materials_index: Dict[str, dict], cum_gained: Dict[str, float], respect_use_flag: bool=True):
     for d in stage_def.get("drops", []):
         item = str(d.get("item") or ""); rate = float(d.get("rate") or 0.0)
-        if not item:
-            continue
+        if not item: continue
         apply_gain_and_track(item, rate, materials_index, cum_gained, respect_use_flag)
 
-def _apply_box_event_contents_per_run(event_name: str, stage_def: dict, event_block: dict,
-                                      quests_def: dict, items_def: dict, materials_index: Dict[str, dict],
-                                      cum_gained: Dict[str, float], respect_use_flag: bool=True) -> bool:
-    """
-    박스 이벤트: 스테이지 클리어 1회당 상자 내용물 기대값 반영
-    (스테이지 정의 우선, 없으면 event_items.json 추론)
-    """
+def _apply_box_event_contents_per_run(event_name: str, stage_def: dict, event_block: dict, quests_def: dict, items_def: dict, materials_index: Dict[str, dict], cum_gained: Dict[str, float], respect_use_flag: bool=True) -> bool:
     contents = _fetch_box_contents(stage_def, event_block, quests_def)
     if not contents:
         contents = _build_box_contents_from_items_json(event_name, items_def)
-        if not contents:
-            return False
+        if not contents: return False
     box = stage_def.get("box") or {}
     base_gold   = float((box.get("gold")   or {}).get("base", 0.0))
     base_silver = float((box.get("silver") or {}).get("base", 0.0))
     base_bronze = float((box.get("bronze") or {}).get("base", 0.0))
     def _apply_list(lst, base):
-        if not lst or base <= 0:
-            return
+        if not lst or base <= 0: return
         has_qty = any('qty_per_box' in (x or {}) for x in lst)
         has_rate = any('rate' in (x or {}) for x in lst)
         n = len(lst)
         for x in lst:
             item = str((x or {}).get("item") or "")
-            if not item:
-                continue
-            if has_qty:
-                per_box = float((x or {}).get("qty_per_box") or 0.0)
-            elif has_rate:
-                per_box = float((x or {}).get("rate") or 0.0)
-            else:
-                per_box = 1.0 / n if n > 0 else 0.0
+            if not item: continue
+            if has_qty: per_box = float((x or {}).get("qty_per_box") or 0.0)
+            elif has_rate: per_box = float((x or {}).get("rate") or 0.0)
+            else: per_box = 1.0 / n if n > 0 else 0.0
             apply_gain_and_track(item, per_box * base, materials_index, cum_gained, respect_use_flag)
     _apply_list(contents.get("gold", []), base_gold)
     _apply_list(contents.get("silver", []), base_silver)
     _apply_list(contents.get("bronze", []), base_bronze)
     return True
 
-# =============================================================================
-# 대상/베스트/CE 상태
-# =============================================================================
-
 def _list_targets(quests_def: dict, event_filter: Optional[str]) -> List[Tuple[str, str]]:
-    """이벤트 목록(roulette/box/raid) → [(event, case)]"""
     seen = set(); out = []
     for e in quests_def.get("event_quests", []):
         ev = str(e.get("event") or ""); cs = str(e.get("case") or "").lower()
-        if not ev or cs not in ("roulette", "box", "raid"):
-            continue
-        if event_filter and (event_filter not in ev):
-            continue
+        if not ev or cs not in ("roulette", "box", "raid"): continue
+        if event_filter and (event_filter not in ev): continue
         key = (ev, cs)
         if key not in seen:
             seen.add(key); out.append(key)
     return out
 
 def _compute_all_bests(targets, quests_def, items_def, materials_index, ap_cost_per_run, prefer_diff, respect_use_flag: bool=True):
-    """각 대상 이벤트별 최적 스테이지 계산"""
     results = []
     for ev, cs in targets:
         if cs == "roulette":
@@ -1242,9 +810,7 @@ def _compute_all_bests(targets, quests_def, items_def, materials_index, ap_cost_
     return results
 
 def _pick_global_best(best_list: List[dict]) -> Optional[dict]:
-    """모든 후보 중 total_eff 최대 선택"""
-    if not best_list:
-        return None
+    if not best_list: return None
     def key_fn(x):
         v = x.get("total_eff")
         if v == float("inf"): return float("inf")
@@ -1257,20 +823,13 @@ def _get_ce_bonus(event_name: str) -> int:
     return int(st["bonus"]) if st else CE_BASE_BONUS
 
 def _get_ce_drop_rate(stage_def: dict, event_block: Optional[dict]) -> float:
-    """CE 드랍 기대치(스테이지 우선, 없으면 이벤트 기본치)"""
     v = stage_def.get("ce_drop_rate")
     if v is None and event_block is not None:
         v = event_block.get("ce_drop_rate")
-    try:
-        return float(v or 0.0)
-    except Exception:
-        return 0.0
+    try: return float(v or 0.0)
+    except Exception: return 0.0
 
 def _update_ce_after_run(event_name: str, stage_def: dict, event_block: Optional[dict]) -> dict:
-    """
-    룰렛 CE 상태 업데이트: 기대 드랍 누적, +1 보너스 단계 계산
-    Returns: 상태 변화/요약 정보
-    """
     if event_name not in CE_STATE:
         return {"p":0.0,"new_drops":0.0,"new_copies_int":0,"gain_int":0,"bonus_inc":0,"new_bonus":_get_ce_bonus(event_name),"rem_to_next":0.0}
     p = _get_ce_drop_rate(stage_def, event_block)
@@ -1290,13 +849,7 @@ def _init_ce_state_for_targets(targets):
         if cs == "roulette" and ev not in CE_STATE:
             CE_STATE[ev] = {"drops_acc": 0.0, "bonus": CE_BASE_BONUS}
 
-# =============================================================================
-# 최종 표 & 로그 헤더
-# =============================================================================
-
-def _print_final_materials_summary(write_line, initial_lack: Dict[str, float], materials_index: Dict[str, dict],
-                                   cum_gained: Dict[str, float], respect_use_flag: bool=True) -> None:
-    """최종 재료 요약(정렬 규칙 유지, 정수 표기)"""
+def _print_final_materials_summary(write_line, initial_lack: Dict[str, float], materials_index: Dict[str, dict], cum_gained: Dict[str, float], respect_use_flag: bool=True) -> None:
     final_lack = snapshot_lack(materials_index, respect_use_flag)
     names = set(initial_lack.keys()) | set(cum_gained.keys()) | set(final_lack.keys())
     rows = []
@@ -1310,31 +863,20 @@ def _print_final_materials_summary(write_line, initial_lack: Dict[str, float], m
         if target == 0.0 and got == 0.0 and remain == 0.0:
             continue
         rows.append([name, target, got, remain])
-
     rows.sort(key=lambda r: _material_sort_key(r[0]))
     if not rows:
-        write_line("(최종 재료 현황: 출력할 항목 없음)")
-        return
+        write_line("(최종 재료 현황: 출력할 항목 없음)"); return
     headers = ["재료", "목표", "획득", "부족"]
     fmt_rows = [[r[0], f0(r[1]), f0(r[2]), f0(r[3])] for r in rows]
     _print_table(write_line, headers, fmt_rows, aligns=["left", "right", "right", "right"])
 
 def _prepend_lines_to_file(filepath: str, lines: List[str]) -> None:
-    """파일 상단에 요약 헤더 삽입(본문은 유지)"""
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            original = f.read()
+        with open(filepath, "r", encoding="utf-8") as f: original = f.read()
         with open(filepath, "w", encoding="utf-8") as f:
-            for ln in lines:
-                f.write(ln + "\\n")
-            f.write("\\n")
-            f.write(original)
-    except Exception:
-        pass
-
-# =============================================================================
-# 메인
-# =============================================================================
+            for ln in lines: f.write(ln + "\n")
+            f.write("\n"); f.write(original)
+    except Exception: pass
 
 def main():
     parser = argparse.ArgumentParser()
@@ -1346,42 +888,31 @@ def main():
     parser.add_argument("--ap-cost", type=float, default=40.0)
     parser.add_argument("--ignore-use-flag", action="store_true")
     parser.add_argument("--log", default="run_log.txt")
-    parser.add_argument("--table-format", choices=["text", "md", "csv"], default="text",
-                        help="표 출력 포맷(text, md, csv)")
-    parser.add_argument("--table-style", choices=["box","ascii"], default="box",
-                        help="텍스트 표 스타일: box(상자선) | ascii(+---+)")
-    parser.add_argument("--ambiguous-wide", action="store_true",
-                        help="모호폭(A) 문자를 폭=2로 취급(기본 1칸)")
-    parser.add_argument("--ascii-arrow", action="store_true",
-                        help="화살표를 '->'로 출력(기본 '→')")
-    parser.add_argument("--ascii-bullet", action="store_true",
-                        help="불릿을 '-'로 출력(기본 '·')")
+    parser.add_argument("--table-format", choices=["text", "md", "csv"], default="text")
+    parser.add_argument("--table-style", choices=["box","ascii"], default="ascii")
+    parser.add_argument("--ambiguous-wide", action="store_true")
+    parser.add_argument("--ascii-arrow", action="store_true")
+    parser.add_argument("--ascii-bullet", action="store_true")
     args = parser.parse_args()
 
     global TABLE_FORMAT, TABLE_STYLE, AMBIGUOUS_WIDE, ARROW, BULLET
     TABLE_FORMAT = args.table_format
     TABLE_STYLE  = args.table_style
     AMBIGUOUS_WIDE = bool(args.ambiguous_wide)
-    if args.ascii_arrow:
-        ARROW = "->"
-    if args.ascii_bullet:
-        BULLET = "-"
+    if args.ascii_arrow: ARROW = "->"
+    if args.ascii_bullet: BULLET = "-"
 
     logger = Logger(args.log, tee=False); w = logger.write
 
-    # 1) 데이터 로드/인덱싱/정렬맵
     materials_json = load_json(args.materials)
     init_rarity_map_from_materials(materials_json)
     materials_index = to_material_index(materials_json)
     init_sort_index_from_materials(materials_json)
 
     quests_def = load_json(args.quests)
-    try:
-        items_def = load_json(args.items)
-    except Exception:
-        items_def = {}
+    try: items_def = load_json(args.items)
+    except Exception: items_def = {}
 
-    # 1-1) (신규) 아이템명 검증
     unknown_map = validate_item_names(materials_index, quests_def, items_def)
     if unknown_map:
         w("## 경고: materials.json에 없는 아이템명이 참조되었습니다")
@@ -1414,7 +945,6 @@ def main():
         print(f"[로그 저장 완료] {logger.filepath}")
         return
 
-    # 2) 루프 상태
     ap_pool = total_ap
     tickets_acc_by_event: Dict[str, float] = {}
     need_tickets_cache: Dict[str, float] = {}
@@ -1426,17 +956,14 @@ def main():
     session_segments: List[Tuple[str, str, int]] = []
     prev_session_key: Optional[Tuple[str, str]] = None
 
-    # 3) AP가 남을 동안 반복
     while ap_pool >= args.ap_cost:
         run_idx += 1
         global CURRENT_RUN_GAINS; CURRENT_RUN_GAINS = {}
 
-        # 이번 판 들어가기 전 기준의 각 이벤트 최적 스테이지
         bests_before = _compute_all_bests(targets, quests_def, items_def, materials_index, args.ap_cost, args.diff, respect_use_flag)
         global_best = _pick_global_best(bests_before)
         if not global_best:
-            w("※ 선택할 스테이지 없음 → 중단")
-            break
+            w("※ 선택할 스테이지 없음 → 중단"); break
 
         ev = global_best["event"]; cs = global_best["case"]
         stage_name = global_best["stage"]; diff = global_best["diff"]
@@ -1446,8 +973,7 @@ def main():
         stage_changed_trigger = (last_choice_key is None or choice_key != last_choice_key)
         sess_key = (ev, diff)
         if prev_session_key != sess_key:
-            session_segments.append((ev, diff, 1))
-            prev_session_key = sess_key
+            session_segments.append((ev, diff, 1)); prev_session_key = sess_key
         else:
             name, d, cnt = session_segments[-1]
             session_segments[-1] = (name, d, cnt + 1)
@@ -1480,8 +1006,7 @@ def main():
                 tickets_acc_by_event[ev] -= opened * need_tk
                 _open_roulette_boxes_and_apply(ev, opened, items_def, materials_index, cum_gained, respect_use_flag)
                 refund_gain = opened * roulette_refund_per_box.get(ev, 0.0)
-                if refund_gain > 0:
-                    ap_pool += refund_gain
+                if refund_gain > 0: ap_pool += refund_gain
         elif cs == "box":
             if block:
                 _apply_box_event_contents_per_run(ev, stage_def, block, quests_def, items_def, materials_index, cum_gained, respect_use_flag)
@@ -1492,8 +1017,7 @@ def main():
         lack_zero_items = []
         for name, b in lack_before.items():
             a = lack_after.get(name, 0.0)
-            if b > 0 and a == 0:
-                lack_zero_items.append((name, b, cum_gained.get(name, 0.0)))
+            if b > 0 and a == 0: lack_zero_items.append((name, b, cum_gained.get(name, 0.0)))
 
         ce_trigger_info = None
         if cs == "roulette":
@@ -1523,12 +1047,12 @@ def main():
                 continue
 
             for name, b, total in lack_zero_items:
-                w(f"  {BULLET} [Run {run_idx}] 재료 충족: {name}  (부족 {f2(b)} {ARROW} 0)  | 누적 획득 {f2(total)}")
+                w(f"  - [Run {run_idx}] 재료 충족: {name}  (부족 {f2(b)} -> 0)  | 누적 획득 {f2(total)}")
 
             if ce_trigger_info is not None and not ce_only_trigger:
                 gi = ce_trigger_info["gain_int"]; bi = ce_trigger_info["bonus_inc"]; cur_int = ce_trigger_info["new_copies_int"]
-                if gi > 0: w(f"  {BULLET} 예장 드랍: +{gi}장 (현재 {cur_int}장, 누적 기대 {f2(ce_trigger_info['new_drops'])}장)")
-                if bi > 0: w(f"    → 보너스 +{bi} ⇒ 현재 {ce_trigger_info['new_bonus']}  (다음 +1까지 {f2(ce_trigger_info['rem_to_next'])}장 기대)")
+                if gi > 0: w(f"  - 예장 드랍: +{gi}장 (현재 {cur_int}장, 누적 기대 {f2(ce_trigger_info['new_drops'])}장)")
+                if bi > 0: w(f"    -> 보너스 +{bi} ⇒ 현재 {ce_trigger_info['new_bonus']}  (다음 +1까지 {f2(ce_trigger_info['rem_to_next'])}장 기대)")
 
             w("변동된 결과 (이 판):")
             _print_gain_table(w, CURRENT_RUN_GAINS, lack_before, lack_after, cum_gained)
@@ -1543,9 +1067,8 @@ def main():
                     suffix = f", 다음 +1까지 {f2(rem)}장"
                 w(f"룰렛: 티켓 {f2(tickets_acc_by_event.get(ev, 0.0))}/{f2(need_tk)} (+{f2(last_tpr_for_run)}/판) | 환급AP +{f2(refund_gain)} | AP 풀 {f2(ap_pool)} | 예장 {cur_int}장(보너스 {ce_state['bonus']}{suffix})")
 
-            # 이번 판 반영 후 최적 효율 요약(정보용)
             bests_after = _compute_all_bests(targets, quests_def, items_def, materials_index, args.ap_cost, args.diff, respect_use_flag)
-            w("\\n현재 이벤트 효율 요약:")
+            w("\n현재 이벤트 효율 요약:")
             _print_eff_table(w, bests_after, args.ap_cost)
             w(""); w("")
 
@@ -1557,19 +1080,205 @@ def main():
     _print_final_materials_summary(w, initial_lack, materials_index, cum_gained, respect_use_flag)
     logger.close()
 
-    # 로그 상단 요약 블록 삽입
     header = ["## 주회 세션(순서대로) — 이벤트별 연속 주행 구간 요약"]
     body = [f"  {i+1:>2}. {name} [{d}] — {cnt}판" for i, (name, d, cnt) in enumerate(session_segments)]
     lines = header + body + ["", "## 원본 로그 ↓", ""]
-    for ln in header + body:
-        print(ln)
+    for ln in header + body: print(ln)
     print()
     _prepend_lines_to_file(args.log, lines)
     print(f"[로그 저장 완료] {logger.filepath}")
 
 if __name__ == "__main__":
     main()
-`;
-  </script>
+</script>
+
+<!-- 2) 기본 JSON 세트(사용자 입력으로 have/need만 바꿔서 다시 저장해서 사용) -->
+<script id="materials-json" type="application/json">{"materials":[{"item":"금사과","tier":"사과","ap_per_item":0,"have":0,"need":0,"lack":0,"use":"Y"},{"item":"은사과","tier":"사과","ap_per_item":0,"have":0,"need":0,"lack":0,"use":"Y"},{"item":"청사과","tier":"사과","ap_per_item":0,"have":0,"need":0,"lack":0,"use":"Y"},{"item":"동사과","tier":"사과","ap_per_item":0,"have":0,"need":0,"lack":0,"use":"Y"},{"item":"묘목","tier":"사과","ap_per_item":0,"have":177,"need":0,"lack":0,"use":"Y"},{"item":"퓨어프리즘","tier":"퓨어프리즘","ap_per_item":0,"have":2073,"need":0,"lack":0,"use":"Y"},<?php?></script>
+<script id="event-quests-json" type="application/json">{{EVENT_QUESTS}}</script>
+<script id="event-items-json" type="application/json">{{EVENT_ITEMS}}</script>
+
+<!-- 위 materials-json의 앞부분 두 항목(사과/묘목/프리즘)은 UI에서 제외할 예정이므로 실제 값은 의미없습니다.
+     아래 JS가 base JSON을 교체/보정합니다. -->
+
+<script>
+/* ======== (빌드 타임 치환) 업로드하신 JSON을 주입 ======== */
+document.getElementById('event-quests-json').textContent = <?=
+JSON.stringify(<?=`<?=`?>`.trim(),null,2)?> // dummy to keep html block intact
+</script>
+<!-- ↑ 위 PHP 표시는 “그냥 무시”하세요. GitHub Pages/Netlify에선 그대로 텍스트로 남습니다.
+     실제 본문은 아래 JS에서 넣습니다.  -->
+
+<script>
+/* ─────────────────────────────────────────────────────────
+   0) 데이터 삽입: (여기에 실제 JSON 본문을 넣습니다)
+   ───────────────────────────────────────────────────────── */
+const RAW_MATERIALS = JSON.parse(`<?=`?>`);
+const RAW_EVENT_QUESTS = JSON.parse(String.raw`{{EVENT_QUESTS_PAYLOAD}}`);
+const RAW_EVENT_ITEMS  = JSON.parse(String.raw`{{EVENT_ITEMS_PAYLOAD}}`);
+
+/* ─────────────────────────────────────────────────────────
+   1) Pyodide 준비
+   ───────────────────────────────────────────────────────── */
+let pyodidePromise = null;
+async function ensurePyodide() {
+  if (pyodidePromise) return pyodidePromise;
+  pyodidePromise = new Promise(async (resolve, reject) => {
+    try {
+      setStatus("Pyodide 로딩 중... (최초 5–20초)");
+      const { loadPyodide } = await import('https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js');
+      const pyodide = await loadPyodide({indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/'});
+      setStatus("Python 준비됨");
+      resolve(pyodide);
+    } catch (e) {
+      setStatus("Pyodide 로딩 실패", true);
+      reject(e);
+    }
+  });
+  return pyodidePromise;
+}
+
+/* ─────────────────────────────────────────────────────────
+   2) UI — 재료 테이블 렌더
+   ───────────────────────────────────────────────────────── */
+const EXCLUDE_NAME_RULE = (name) => {
+  if (!name) return true;
+  const n = String(name);
+  return (
+    n.includes("금사과") || n.includes("은사과") || n.includes("청사과") || n.includes("동사과") ||
+    n.includes("묘목") || n.includes("퓨어프리즘") ||
+    n.includes("인연") || n.includes("Bond") ||
+    n.includes("종화")
+  );
+};
+const matTableBody = document.getElementById('matBody');
+const qInput = document.getElementById('q');
+
+function cloneBaseMaterials() {
+  return JSON.parse(JSON.stringify(RAW_MATERIALS));
+}
+
+function toViewRows(base) {
+  return base.materials.filter(m => !EXCLUDE_NAME_RULE(m.item));
+}
+
+function renderTable() {
+  const kw = qInput.value.trim();
+  const base = cloneBaseMaterials();
+  const rows = toViewRows(base).filter(m => !kw || String(m.item).includes(kw));
+  matTableBody.innerHTML = "";
+  for (const m of rows) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${m.item === "QP" ? "QP (단위: <b>백만</b>)" : m.item}</td>
+      <td>${m.tier ?? ""}</td>
+      <td class="right">${m.ap_per_item ?? 0}</td>
+      <td>${(m.use ?? "Y")}</td>
+      <td><input type="number" step="${m.item==="QP" ? "0.1" : "1"}" min="0" value="${m.item==="QP" ? (Number(m.have||0)/1_000_000) : (m.have||0)}" data-item="${m.item}" data-kind="have" class="${m.item==="QP" ? "qp" : ""}"></td>
+      <td><input type="number" step="${m.item==="QP" ? "0.1" : "1"}" min="0" value="${m.item==="QP" ? (Number(m.need||0)/1_000_000) : (m.need||0)}" data-item="${m.item}" data-kind="need" class="${m.item==="QP" ? "qp" : ""}"></td>
+    `;
+    matTableBody.appendChild(tr);
+  }
+}
+
+qInput.addEventListener('input', renderTable);
+
+/* ─────────────────────────────────────────────────────────
+   3) 실행 — JSON 파일로 기록 → 파이썬 실행 → 로그 읽기
+   ───────────────────────────────────────────────────────── */
+function setStatus(msg, isErr=false){ 
+  const el = document.getElementById('status');
+  el.textContent = "— " + msg;
+  el.className = isErr ? "err" : "muted";
+}
+function setLog(text){ document.getElementById('log').textContent = text; }
+
+async function runSimulation(){
+  const btn = document.getElementById('btnRun');
+  btn.disabled = true;
+  try{
+    const pyodide = await ensurePyodide();
+
+    // 3-1) 사용자 입력 반영 — materials.json 재구성
+    const base = cloneBaseMaterials();
+    const viewMap = {};
+    document.querySelectorAll('#matBody input').forEach(inp=>{
+      const item = inp.dataset.item, kind = inp.dataset.kind;
+      const v = Number(inp.value || 0);
+      if(!viewMap[item]) viewMap[item]={have:0,need:0};
+      viewMap[item][kind] = v;
+    });
+
+    for (const m of base.materials) {
+      // UI에 없는 항목(사과/묘목/프리즘/인연/종화)은 사용하지 않도록 고정
+      if (EXCLUDE_NAME_RULE(m.item)) {
+        m.use = "N";
+        m.lack = 0;
+        continue;
+      }
+      const rec = viewMap[m.item] || {have:Number(m.have||0), need:Number(m.need||0)};
+      let have = rec.have, need = rec.need;
+      if (m.item === "QP"){ // QP는 100만 단위
+        have = Math.round((Number(have)||0) * 1_000_000);
+        need = Math.round((Number(need)||0) * 1_000_000);
+      }
+      m.have = have;
+      m.need = need;
+      m.lack = Math.max(0, Number(need)-Number(have));
+      m.use = (m.use ?? "Y");
+    }
+
+    // 3-2) event json 그대로 사용
+    const eventQuests = RAW_EVENT_QUESTS;
+    const eventItems  = RAW_EVENT_ITEMS;
+
+    // 3-3) Py 파일/JSON 파일 기록
+    const pyCode = document.getElementById('py-sim').textContent;
+    pyodide.FS.writeFile("simulator.py", pyCode, {encoding:"utf-8"});
+    pyodide.FS.writeFile("materials.json", JSON.stringify(base), {encoding:"utf-8"});
+    pyodide.FS.writeFile("event_quests.json", JSON.stringify(eventQuests), {encoding:"utf-8"});
+    pyodide.FS.writeFile("event_items.json",  JSON.stringify(eventItems),  {encoding:"utf-8"});
+
+    // 사과 수량
+    const ap = {
+      gold:   Number(document.getElementById('apGold').value||0),
+      silver: Number(document.getElementById('apSilver').value||0),
+      blue:   Number(document.getElementById('apBlue').value||0),
+      copper: Number(document.getElementById('apCopper').value||0),
+    };
+
+    setStatus("시뮬레이터 실행 중…");
+    const log = await pyodide.runPythonAsync(`
+import sys, json, simulator
+simulator.APPLE_COUNTS = ${JSON.stringify(ap)}
+simulator.NATURAL_AP = 0.0
+sys.argv = ["simulator.py",
+            "--materials","materials.json",
+            "--quests","event_quests.json",
+            "--items","event_items.json",
+            "--ap-cost","40",
+            "--table-format","text",
+            "--table-style","ascii",
+            "--log","run_log.txt"]
+simulator.main()
+open("run_log.txt","r",encoding="utf-8").read()
+    `);
+    setStatus("완료!");
+    setLog(log);
+  }catch(e){
+    setStatus("실행 오류", true);
+    setLog(String(e && e.message ? e.message : e));
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   4) 시작
+   ───────────────────────────────────────────────────────── */
+document.getElementById('btnRun').addEventListener('click', runSimulation);
+renderTable();
+setStatus("준비됨");
+</script>
+
 </body>
 </html>

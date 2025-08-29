@@ -30,26 +30,7 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     .bar{height:8px;border:1px solid #1f2937;border-radius:999px;overflow:hidden}.bar>i{display:block;height:100%;background:linear-gradient(90deg,#0891b2,#22d3ee);width:0%}
     .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}.right{margin-left:auto}
-/* --- UI polish --- */
-.card{background:#0b1224;border:1px solid #1a2442;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.3);padding:16px;margin:12px 0;}
-.btn{padding:8px 14px;border-radius:10px;border:1px solid #2a3966;background:#13224a;cursor:pointer}
-.btn:hover{background:#182b5e}
-.btn + .btn{margin-left:8px}
-.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:10px 0}
-.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#1b2a52;border:1px solid #2d3e73;font-size:12px}
-.badge button{border:none;background:transparent;color:#b8c4ff;margin-left:6px;cursor:pointer}
-#matUploadName{display:none}
-#matUploadClear{display:none}
-#matTable{border-collapse:separate;border-spacing:0;width:100%}
-#matTable thead th{position:sticky;top:0;background:#0e1630;z-index:1;border-bottom:1px solid #24345c}
-#matTable tbody tr:nth-child(even){background:#0d1427}
-#matTable tbody tr:hover{background:#0f1a33}
-#matTable th,#matTable td{padding:8px 10px}
-#matTable th:nth-child(3),#matTable th:nth-child(4),#matTable th:nth-child(5),
-#matTable td:nth-child(3),#matTable td:nth-child(4),#matTable td:nth-child(5){text-align:right}
-#matTable input[type="number"]{text-align:right;width:120px}
-
-</style>
+  </style>
 </head>
 <body>
   <div class="wrap">
@@ -66,6 +47,7 @@
             <div><span class="loader"></span><b>Pyodide 로딩 중…</b> (인터넷 속도에 따라 10~25초)</div>
             <div class="bar" style="margin-top:10px;"><i id="pbar"></i></div>
             <div class="hint" id="bootmsg">파이썬 런타임 다운로드 중</div>
+            <div style="margin-top:8px"><button id="retryBoot" class="btn">재시도</button><span id="cdnInfo" class="badge" style="margin-left:8px;display:none"></span></div>
           </div>
           <span class="badge">CDN</span>
         </div>
@@ -90,11 +72,12 @@
           <div class="toolbar">
             <div class="grow hint">기본은 모든 재료 <b>0</b>으로 시작합니다. 필요하면 아래에서 <b>materials.json 업로드</b>로 교체하세요.</div>
             <label class="sm" style="margin:0">materials.json 업로드</label>
-            <input id="matUpload" type="file" accept="application/json" /> <span id="matUploadName" class="badge" title="업로드 인식된 파일명"></span> <button id="matUploadClear" class="badge" title="업로드 취소(미적용)">x</button></div>
+            <input id="matUpload" type="file" accept="application/json" />
+          </div>
 
           <div class="tblwrap">
             <table id="matTable">
-              <thead><tr><th>재료</th><th>tier</th><th>ap/개</th><th>보유량</th><th>목표량</th></tr></thead>
+              <thead><tr><th>재료</th><th>레어도</th><th>ap/개</th><th>보유량</th><th>목표량</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -137,11 +120,9 @@
     const FORCE_NEED_1M_KEYWORD = ['인연','종화']; // 목표 100만 강제
     const NAME_QP = 'QP';
     const MILLION = 1_000_000;
-    const NAME_BOND = '인연';
 
     // 업로드/리셋 기준 스냅샷(Reset 버튼 동작용)
     let RESET_SNAPSHOT = null;
-let BEFORE_UPLOAD_SNAPSHOT = null;
 
     function shouldHide(name){
       if (EXACT_HIDE.has(name)) return true;
@@ -152,8 +133,6 @@ let BEFORE_UPLOAD_SNAPSHOT = null;
     }
     function labelFor(name){
       if (name === NAME_QP) return 'QP(100만 단위)';
-      if (name === NAME_BOND) return '인연(1000단위)';
-      if (isForceNeed1M(name)) return name + '(고정 100만)';
       return name;
     }
 
@@ -197,8 +176,8 @@ let BEFORE_UPLOAD_SNAPSHOT = null;
         if (kw && !rawName.includes(kw)) continue;
 
         const isQP = (rawName === NAME_QP);
-        const dispHave = isQP ? Math.floor(Number(haveRaw||0)/MILLION) : Number(haveRaw||0);
-    const dispNeed = isQP ? Math.floor(Number(needRaw||0)/MILLION) : Number(needRaw||0);
+        const dispHave = isQP ? Math.floor((m.have||0)/MILLION) : (m.have??0);
+        const dispNeed = isQP ? Math.floor((m.need||0)/MILLION) : (m.need??0);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -251,11 +230,104 @@ let BEFORE_UPLOAD_SNAPSHOT = null;
     // ===== 3) Pyodide 부팅 & 파일 쓰기 =====
     let pyodide = null;
     async function bootPyodide() {
-      setP(10,'파이썬 런타임 다운로드 중');
-      pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/' });
-      setP(60,'런타임 초기화…');
-      pyodide.FS.mkdirTree('/');
-      setP(80,'Python 스크립트 준비…');
+      const BOOT = document.querySelector('#boot');
+      const msg  = (t)=>{ const m=document.querySelector('#bootmsg'); if(m) m.textContent=t; };
+      const cdnBadge = document.querySelector('#cdnInfo');
+      const withTimeout = (p, ms)=>Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout '+ms+'ms')), ms))]);
+      const ensureScript = async (src)=>{
+        if (typeof loadPyodide === 'function') return;
+        await new Promise((resolve, reject)=>{
+          const s = document.createElement('script');
+          s.src = src; s.crossOrigin = 'anonymous';
+          s.onload = resolve; s.onerror = ()=>reject(new Error('script load failed: '+src));
+          document.head.appendChild(s);
+        });
+      };
+      const tries = [
+        {label:'jsDelivr(full)', url:'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/', js:'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js'},
+        {label:'jsDelivr(npm)',  url:'https://cdn.jsdelivr.net/npm/pyodide@0.26.2/', js:'https://cdn.jsdelivr.net/npm/pyodide@0.26.2/pyodide.js'},
+        {label:'unpkg',          url:'https://unpkg.com/pyodide@0.26.2/',          js:'https://unpkg.com/pyodide@0.26.2/pyodide.js'},
+      ];
+      try{
+        let lastErr = null;
+        for (const t of tries){
+          try{
+            msg('Pyodide 라이브러리 불러오는 중… ('+t.label+')');
+            if (cdnBadge){ cdnBadge.style.display='inline-block'; cdnBadge.textContent = t.label; }
+            if (typeof loadPyodide !== 'function'){
+              await ensureScript(t.js);
+            }
+            msg('Pyodide 초기화…');
+            pyodide = await withTimeout(loadPyodide({ indexURL: t.url }), 25000);
+            // success → break
+            window.PYODIDE_INDEX_URL = t.url;
+            break;
+          }catch(errTry){
+            console.warn('Pyodide try failed', t, errTry);
+            lastErr = errTry;
+          }
+        }
+        if (!pyodide){
+          throw lastErr || new Error('모든 CDN 시도 실패');
+        }
+
+        msg('가상 파일시스템 준비…');
+        pyodide.FS.mkdirTree('/');
+        setP(80,'Python 스크립트 준비…');
+
+        pyodide.FS.writeFile('materials.json', JSON.stringify(BASE.materials), { encoding:'utf8' });
+        pyodide.FS.writeFile('event_quests.json', JSON.stringify(BASE.quests),  { encoding:'utf8' });
+        pyodide.FS.writeFile('event_items.json',  JSON.stringify(BASE.items),   { encoding:'utf8' });
+
+        const code = await (await fetch('calc_event_eff.py')).text();
+        pyodide.FS.writeFile('calc_event_eff.py', code, { encoding:'utf8' });
+      }catch(e){
+        const online = (navigator.onLine ? '온라인' : '오프라인');
+        const hint = 'CDN 접근 문제일 수 있습니다. Netlify 호스팅에서도 외부 CDN 차단/프록시 영향이 있을 수 있어요.';
+        BOOT.innerHTML = '<b class="err">초기화 실패:</b> ' + e + '<div class="hint">상태: '+online+'. '+hint+' (재시도 버튼으로 다시 시도 가능)</div>';
+        console.error(e);
+        throw e;
+      }
+    
+
+          });
+        };
+
+        // 1st try: existing script (already in HTML) with timeout
+        const withTimeout = (p, ms)=>Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout '+ms+'ms')), ms))]);
+        try{
+          if (typeof loadPyodide !== 'function'){
+            // in rare cases, initial <script> tag was blocked
+            await ensureScript(primaryIdx + 'pyodide.js');
+          }
+          msg('Pyodide 초기화(1차)…');
+          pyodide = await withTimeout(loadPyodide({ indexURL: primaryIdx }), 20000);
+        }catch(err1){
+          console.warn('Primary Pyodide load failed:', err1);
+          msg('1차 CDN 실패 → 백업 CDN 시도 중…');
+          // 2nd try: alternate jsDelivr path
+          await ensureScript(backupIdx + 'pyodide.js');
+          pyodide = await withTimeout(loadPyodide({ indexURL: backupIdx }), 20000);
+        }
+
+        msg('가상 파일시스템 준비…');
+        pyodide.FS.mkdirTree('/');
+        setP(80,'Python 스크립트 준비…');
+
+        // Write data files
+        pyodide.FS.writeFile('materials.json', JSON.stringify(BASE.materials), { encoding:'utf8' });
+        pyodide.FS.writeFile('event_quests.json', JSON.stringify(BASE.quests),  { encoding:'utf8' });
+        pyodide.FS.writeFile('event_items.json',  JSON.stringify(BASE.items),   { encoding:'utf8' });
+
+        const code = await (await fetch('calc_event_eff.py')).text();
+        pyodide.FS.writeFile('calc_event_eff.py', code, { encoding:'utf8' });
+      }catch(e){
+        const online = (navigator.onLine ? '온라인' : '오프라인');
+        let hint = '네트워크/방화벽이 CDN을 차단할 수 있습니다. 사내망이면 테더링 등으로 재시도하거나, 차단 해제 후 새로고침 해주세요.';
+        document.querySelector('#boot').innerHTML = '<b class="err">초기화 실패:</b> ' + e + '<div class="hint">상태: '+online+'. ' + hint + '</div>';
+        throw e;
+      }
+
     }
 
     async function writeFiles() {
@@ -344,8 +416,7 @@ open("run_log.txt","r",encoding="utf-8").read()
         const txt = await file.text();
         const json = JSON.parse(txt);
         if (!json || !Array.isArray(json.materials)) throw new Error('materials 배열이 없습니다.');
-        BEFORE_UPLOAD_SNAPSHOT = structuredClone(BASE.materials);
-    BASE.materials = json;                   // 업로드 값 그대로 사용
+        BASE.materials = json;                   // 업로드 값 그대로 사용
         applyHiddenItemPolicies();               // 인연/종화 강제 100만, 숨김 항목 계산 제외
         RESET_SNAPSHOT = structuredClone(BASE.materials); // Reset은 업로드값으로
         renderTable(document.querySelector('#search').value||'');
@@ -369,13 +440,15 @@ open("run_log.txt","r",encoding="utf-8").read()
 
         renderTable();
 
-        
-    // 업로드 뱃지/버튼 표시
-    const tag = document.querySelector('#matUploadName');
-    const btn = document.querySelector('#matUploadClear');
-    if (tag){ tag.style.display='inline-block'; tag.textContent = file.name; }
-    if (btn){ btn.style.display='inline-block'; }
+        await bootPyodide();
+        document.querySelector('#boot').innerHTML = '<b class="ok">준비 완료!</b> 사과/아이템 수량을 입력하고 <b>시뮬레이션 실행</b>을 누르세요.';
+        document.querySelector('#runBtn').disabled = false;
+        document.querySelector('#resetBtn').disabled = false;
 
+        document.querySelector('#dlBtn').addEventListener('click', ()=>{
+          const blob = new Blob([document.querySelector('#out').textContent], {type:'text/plain;charset=utf-8'});
+          const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'run_log.txt' });
+          a.click(); URL.revokeObjectURL(a.href);
         });
         document.querySelector('#runBtn').addEventListener('click', runSimulation);
         document.querySelector('#resetBtn').addEventListener('click', resetInputs);
@@ -388,26 +461,21 @@ open("run_log.txt","r",encoding="utf-8").read()
   </script>
 
 <script>
-function clearUploadedMaterials(){
-  try{
-    if (BEFORE_UPLOAD_SNAPSHOT){
-      BASE.materials = structuredClone(BEFORE_UPLOAD_SNAPSHOT);
-      BEFORE_UPLOAD_SNAPSHOT = null;
-      applyHiddenItemPolicies();
-      renderTable(document.querySelector('#search').value||'');
-    }
-  }finally{
-    const tag = document.querySelector('#matUploadName');
-    const btn = document.querySelector('#matUploadClear');
-    if (tag){ tag.style.display='none'; tag.textContent=''; }
-    if (btn){ btn.style.display='none'; }
-    const inp = document.querySelector('#matUpload');
-    if (inp) inp.value = '';
-  }
-}
 document.addEventListener('DOMContentLoaded', ()=>{
-  const btn = document.querySelector('#matUploadClear');
-  if (btn){ btn.addEventListener('click', clearUploadedMaterials); }
+  const btn = document.querySelector('#retryBoot');
+  if (btn){
+    btn.addEventListener('click', async ()=>{
+      // restore initial card text if it was replaced by error
+      const boot = document.querySelector('#boot');
+      if (boot && boot.querySelector('.err')){
+        boot.innerHTML = '<div><span class="loader"></span><b>Pyodide 로딩 중…</b> (인터넷 속도에 따라 10~25초)</div>' +
+                         '<div class="hint" id="bootmsg">파이썬 런타임 다운로드 중</div>' +
+                         '<div style="margin-top:8px"><button id="retryBoot" class="btn">재시도</button>' +
+                         '<span id="cdnInfo" class="badge" style="margin-left:8px;display:none"></span></div>';
+      }
+      await bootPyodide();
+    });
+  }
 });
 </script>
 </body>

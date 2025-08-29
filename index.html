@@ -6,34 +6,30 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <style>
-    :root { --bg:#0f172a; --card:#111827; --muted:#94a3b8; --fg:#e5e7eb; --acc:#22d3ee; --ok:#34d399; --err:#f87171 }
-    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,'Noto Sans KR',sans-serif}
+    :root{--bg:#0f172a;--card:#0b1223;--muted:#94a3b8;--fg:#e5e7eb;--acc:#22d3ee;--ok:#34d399;--err:#f87171}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,'Noto Sans KR',sans-serif}
     .wrap{max-width:1100px;margin:40px auto;padding:0 16px}
-    .card{background:#0b1223;border:1px solid #1f2937;border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-    h1{font-size:22px;margin:0 0 10px} .sub{color:var(--muted);font-size:14px;margin-bottom:16px}
-    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-    .grow{flex:1}
+    .card{background:linear-gradient(180deg,#0b1223,#0b1223 60%,#0b1223aa);border:1px solid #1f2937;border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    h1{font-size:22px;margin:0 0 10px}.sub{color:var(--muted);font-size:14px;margin-bottom:16px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.grow{flex:1}
     input[type="number"],input[type="text"]{background:#0b1223;border:1px solid #1f2937;border-radius:10px;color:var(--fg);padding:10px 12px}
-    input[type="number"]{width:120px}
+    input[type="number"]{width:140px}
     label.sm{font-size:13px;color:var(--muted);display:block;margin-bottom:4px}
     .grp{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 12px}
     button{background:var(--acc);color:#001018;border:0;border-radius:12px;padding:10px 16px;font-weight:700;cursor:pointer}
     button.ghost{background:#0b1223;color:var(--fg);border:1px solid #1f2937}
-    button:disabled{opacity:.6;cursor:not-allowed}
-    .hint{color:var(--muted);font-size:13px}
-    .tblwrap{max-height:380px;overflow:auto;border:1px solid #1f2937;border-radius:12px}
+    button:disabled{opacity:.6;cursor:not-allowed}.hint{color:var(--muted);font-size:13px}
+    .tblwrap{max-height:420px;overflow:auto;border:1px solid #1f2937;border-radius:12px}
     table{border-collapse:collapse;width:100%;font-size:14px}
     th,td{border-bottom:1px solid #1f2937;padding:8px 10px;text-align:left}
     thead th{position:sticky;top:0;background:#0b1223;z-index:1}
     pre{white-space:pre-wrap;background:#0b1223;border:1px solid #1f2937;border-radius:12px;padding:16px;min-height:220px}
     .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#0b1223;border:1px solid #1f2937;font-size:12px;color:var(--muted)}
-    .ok{color:var(--ok)} .err{color:var(--err)}
+    .ok{color:var(--ok)}.err{color:var(--err)}
     .loader{display:inline-block;width:16px;height:16px;border:3px solid #1f2937;border-top-color:var(--acc);border-radius:50%;animation:spin 1s linear infinite;vertical-align:-3px;margin-right:6px}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .bar{height:8px;border:1px solid #1f2937;border-radius:999px;overflow:hidden}
-    .bar>i{display:block;height:100%;background:linear-gradient(90deg,#0891b2,#22d3ee);width:0%}
-    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
-    .right{margin-left:auto}
+    .bar{height:8px;border:1px solid #1f2937;border-radius:999px;overflow:hidden}.bar>i{display:block;height:100%;background:linear-gradient(90deg,#0891b2,#22d3ee);width:0%}
+    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}.right{margin-left:auto}
   </style>
 </head>
 <body>
@@ -41,7 +37,7 @@
     <div class="card">
       <h1>FGO 이벤트 주회 시뮬레이터 – 웹 간편판</h1>
       <div class="sub">
-        첫 로딩은 브라우저가 파이썬을 준비하느라 <b>10~25초</b> 걸릴 수 있어요. 준비되면 <b>사과 수량</b>과 <b>아이템 수량의 현재, 목표</b>를 입력하고 <b>실행</b>을 누르세요.
+        첫 로딩은 브라우저가 파이썬을 준비하느라 <b>10~25초</b> 걸릴 수 있어요. 준비되면 <b>사과 수량</b>과 <b>아이템 수량의 현재/목표</b>를 입력하고 <b>실행</b>을 누르세요.
       </div>
 
       <!-- 부팅 표시 -->
@@ -62,7 +58,6 @@
         <div><label class="sm">은사과</label><input id="apple-silver" type="number" min="0" step="1" value="0"></div>
         <div><label class="sm">청사과</label><input id="apple-blue" type="number" min="0" step="1" value="0"></div>
         <div><label class="sm">동사과</label><input id="apple-copper" type="number" min="0" step="1" value="0"></div>
-        <span class="hint">사과는 시뮬레이션의 AP 풀을 직접 결정합니다.</span>
       </div>
 
       <!-- 재료 표 -->
@@ -70,12 +65,11 @@
         <div class="grow">
           <div class="toolbar">
             <input id="search" type="text" placeholder="아이템 검색(이름 일부)" />
+            <span class="right badge">AP/판=40 · text+ascii</span>
           </div>
           <div class="tblwrap">
             <table id="matTable">
-              <thead>
-                <tr><th>재료</th><th>레어도</th><th>ap/개</th><th>보유량</th><th>목표량</th></tr>
-              </thead>
+              <thead><tr><th>재료</th><th>레어도</th><th>ap/개</th><th>보유량</th><th>목표량</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -110,52 +104,71 @@
       return { materials, quests, items };
     }
 
-    // ===== 2) 재료표 렌더링 =====
+    // ===== 2) 재료 표 렌더링(사과/특정 항목 숨김 & QP 100만 단위 표기) =====
     let BASE = { materials:null, quests:null, items:null };
-    const APPLE_NAMES = ["금사과","은사과","청사과","동사과"];
-    const EXCLUDE_ROWS = new Set([...APPLE_NAMES, "퓨어프리즘", "인연", "종화4", "묘목"]);
-    function isExcluded(name){
-      if(EXCLUDE_ROWS.has(name)) return true;
-      if(name && name.includes("종화")) return true; // 종화 전종 숨김
-      return false;
+
+    const HIDE_BY_KEYWORD = ['사과','퓨어','프리즘','인연','종화','묘목']; // 포함시 숨김
+    const EXACT_HIDE = new Set(['금사과','은사과','청사과','동사과','퓨어프리즘','묘목']); // 정확히 숨김
+    const FORCE_NEED_1M_KEYWORD = ['인연','종화']; // 목표 100만 강제
+    const NAME_QP = 'QP';
+    const MILLION = 1_000_000;
+
+    function shouldHide(name){
+      if (EXACT_HIDE.has(name)) return true;
+      return HIDE_BY_KEYWORD.some(k => name.includes(k));
+    }
+    function isForceNeed1M(name){
+      return FORCE_NEED_1M_KEYWORD.some(k => name.includes(k));
+    }
+    function labelFor(name){
+      if (name === NAME_QP) return 'QP(100만 단위)';
+      return name;
+    }
+
+    function applyHiddenItemPolicies(){
+      const rows = BASE.materials.materials || [];
+      for (const m of rows){
+        const name = String(m.item||'');
+        // 퓨어프리즘/묘목 등은 계산 제외
+        if (shouldHide(name) && !isForceNeed1M(name) && name !== NAME_QP){
+          m.use = 'N';
+        }
+        // 인연/종화는 목표 100만으로 고정
+        if (isForceNeed1M(name)){
+          m.need = MILLION;
+          m.lack = Math.max((m.need||0)-(m.have||0),0);
+          m.use = 'Y';
+        }
+      }
     }
 
     function renderTable(filter='') {
       const tbody = document.querySelector('#matTable tbody');
       tbody.innerHTML = '';
       const rows = BASE.materials.materials || [];
-      const kw = filter.trim();
+      const kw = (filter||'').trim();
       for (const m of rows) {
         const rawName = String(m.item||'');
-        if (isExcluded(rawName)) continue;
+        if (shouldHide(rawName)) continue;               // 표에서 숨김
         if (kw && !rawName.includes(kw)) continue;
 
-        const displayName = (rawName === 'QP') ? 'QP(100만 단위)' : rawName;
+        const isQP = (rawName === NAME_QP);
+        const dispHave = isQP ? Math.floor((m.have||0)/MILLION) : (m.have||0);
+        const dispNeed = isQP ? Math.floor((m.need||0)/MILLION) : (m.need||0);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${displayName}</td>
+          <td>${labelFor(rawName)}</td>
           <td>${m.tier??''}</td>
           <td>${(m.ap_per_item??0).toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-          <td><input type="number" step="1" value="${m.have??0}" data-name="${rawName}" data-field="have"></td>
-          <td><input type="number" step="1" value="${m.need??0}" data-name="${rawName}" data-field="need"></td>
+          <td><input type="number" step="1" value="${dispHave}" data-name="${rawName}" data-field="have" ${isForceNeed1M(rawName)?'disabled':''}></td>
+          <td><input type="number" step="1" value="${dispNeed}" data-name="${rawName}" data-field="need" ${isForceNeed1M(rawName)?'disabled':''}></td>
         `;
         tbody.appendChild(tr);
       }
     }
 
-    function initAppleInputsFromMaterials() {
-      const rows = BASE.materials.materials || [];
-      const map = new Map(rows.map(m=>[String(m.item||''), m]));
-      const get = (nm) => Number((map.get(nm)||{}).have||0);
-      document.querySelector('#apple-gold').value   = get("금사과");
-      document.querySelector('#apple-silver').value = get("은사과");
-      document.querySelector('#apple-blue').value   = get("청사과");
-      document.querySelector('#apple-copper').value = get("동사과");
-    }
-
-    function readEditsIntoMaterialsAndApples() {
-      // 표 입력값 → materials 반영
+    function readEditsIntoMaterials() {
       const map = new Map(BASE.materials.materials.map(m=>[String(m.item||''), m]));
       const inputs = document.querySelectorAll('input[data-name]');
       inputs.forEach(inp=>{
@@ -163,31 +176,31 @@
         const field = inp.getAttribute('data-field');
         const row = map.get(name);
         if (!row) return;
-        const v = Number(inp.value);
-        row[field] = Number.isFinite(v) ? v : 0;
+        let v = Number(inp.value);
+        if (!Number.isFinite(v)) v = 0;
+
+        // QP는 100만 단위로 ×1,000,000
+        if (name === NAME_QP) v = v * MILLION;
+
+        row[field] = v;
       });
-
-      // 인연/종화 목표 100만, 숨긴 건 use='N', 부족 0
+      // lack 재계산
       for (const m of BASE.materials.materials) {
-        const name = String(m.item||'');
-        if (name.includes('인연') || name.includes('종화')) m.need = 1_000_000;
-        if (isExcluded(name)) m.use = 'N';
         const have = Number(m.have||0), need = Number(m.need||0);
-        m.lack = isExcluded(name) ? 0 : Math.max(need - have, 0);
+        m.lack = Math.max(need - have, 0);
       }
-
-      // 사과 값은 별도 전달
-      return {
-        gold:   Number(document.querySelector('#apple-gold').value||0),
-        silver: Number(document.querySelector('#apple-silver').value||0),
-        blue:   Number(document.querySelector('#apple-blue').value||0),
-        copper: Number(document.querySelector('#apple-copper').value||0),
-      };
     }
 
     function resetInputs() {
+      // JSON 원본을 훼손하지 않도록 deep copy 후 정책 재적용
+      BASE.materials = structuredClone(BASE._orig_materials);
+      applyHiddenItemPolicies();
       renderTable(document.querySelector('#search').value||'');
-      initAppleInputsFromMaterials();
+      // 사과 입력은 0으로 초기화
+      document.querySelector('#apple-gold').value   = 0;
+      document.querySelector('#apple-silver').value = 0;
+      document.querySelector('#apple-blue').value   = 0;
+      document.querySelector('#apple-copper').value = 0;
     }
 
     // ===== 3) Pyodide 부팅 & 파일 쓰기 =====
@@ -195,20 +208,21 @@
     async function bootPyodide() {
       setP(10,'파이썬 런타임 다운로드 중');
       pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/' });
-      setP(60,'런타임 초기화…'); pyodide.FS.mkdirTree('/'); setP(80,'Python 스크립트 준비…');
+      setP(60,'런타임 초기화…');
+      pyodide.FS.mkdirTree('/');
+      setP(80,'Python 스크립트 준비…');
     }
 
-    async function writeFiles(applesOverride) {
+    async function writeFiles() {
       pyodide.FS.writeFile('materials.json', JSON.stringify(BASE.materials), { encoding:'utf8' });
       pyodide.FS.writeFile('event_quests.json', JSON.stringify(BASE.quests), { encoding:'utf8' });
       pyodide.FS.writeFile('event_items.json', JSON.stringify(BASE.items), { encoding:'utf8' });
-      pyodide.FS.writeFile('apples.json', JSON.stringify(applesOverride), { encoding:'utf8' });
     }
 
-    // 👉 핵심 변경: simulator.py를 외부 파일에서 그대로 불러와 FS에 기록
-    async function writeSimulatorPyFromFile() {
-      const code = await fetch('simulator.py').then(r=>r.text());
-      pyodide.FS.writeFile('simulator.py', code, { encoding:'utf8' });
+    // calc_event_eff.py를 그대로 사용
+    async function writeCorePyFromFile() {
+      const code = await fetch('calc_event_eff.py').then(r=>r.text());
+      pyodide.FS.writeFile('calc_event_eff.py', code, { encoding:'utf8' });
     }
 
     // ===== 4) 실행 =====
@@ -217,13 +231,25 @@
       out.textContent = '실행 중… (브라우저에서 파이썬 코드가 돌아가는 중)';
       document.querySelector('#runBtn').disabled = true;
       try {
-        const apples = readEditsIntoMaterialsAndApples();
-        await writeFiles(apples);
-        await writeSimulatorPyFromFile();
+        // 표 입력 반영
+        readEditsIntoMaterials();
+
+        // 사과 수량 읽기
+        const apples = {
+          gold:   Number(document.querySelector('#apple-gold').value||0),
+          silver: Number(document.querySelector('#apple-silver').value||0),
+          blue:   Number(document.querySelector('#apple-blue').value||0),
+          copper: Number(document.querySelector('#apple-copper').value||0),
+        };
+
+        await writeFiles();
+        await writeCorePyFromFile();
 
         const py = `
-import sys, json, importlib.util
-sys.argv = ["simulator.py",
+import sys, importlib.util
+
+# 인자 고정
+sys.argv = ["calc_event_eff.py",
             "--materials","materials.json",
             "--quests","event_quests.json",
             "--items","event_items.json",
@@ -232,20 +258,24 @@ sys.argv = ["simulator.py",
             "--table-style","ascii",
             "--log","run_log.txt"]
 
-spec = importlib.util.spec_from_file_location("simulator","simulator.py")
-simulator = importlib.util.module_from_spec(spec); spec.loader.exec_module(simulator)
+spec = importlib.util.spec_from_file_location("core","calc_event_eff.py")
+core = importlib.util.module_from_spec(spec); spec.loader.exec_module(core)
 
-with open("apples.json","r",encoding="utf-8") as f:
-    apples = json.load(f)
-for k in ("gold","silver","blue","copper"):
-    if k in apples:
-        try: simulator.APPLE_COUNTS[k] = float(apples[k])
-        except: simulator.APPLE_COUNTS[k] = 0.0
+# 사과 수량 주입(없으면 생성)
+try:
+    core.APPLE_COUNTS
+except AttributeError:
+    core.APPLE_COUNTS = {}
+for k,v in ${JSON.stringify(apples)}.items():
+    try:
+        core.APPLE_COUNTS[k] = float(v) if v is not None else 0.0
+    except Exception:
+        core.APPLE_COUNTS[k] = 0.0
 
-simulator.TABLE_FORMAT = "text"
-simulator.TABLE_STYLE  = "ascii"
+core.TABLE_FORMAT = "text"
+core.TABLE_STYLE  = "ascii"
 
-simulator.main()
+core.main()
 open("run_log.txt","r",encoding="utf-8").read()
         `;
         const log = await pyodide.runPythonAsync(py);
@@ -258,16 +288,20 @@ open("run_log.txt","r",encoding="utf-8").read()
       }
     }
 
-    // ===== 5) 이벤트 바인딩 & 초기화 =====
+    // ===== 5) 초기화 =====
     (async () => {
       try{
         BASE = await loadJsonFiles();
+        // 원본 보존해두고 작업용 복사본 사용
+        BASE._orig_materials = structuredClone(BASE.materials);
+        applyHiddenItemPolicies();
         renderTable();
-        initAppleInputsFromMaterials();
+
         await bootPyodide();
         document.querySelector('#boot').innerHTML = '<b class="ok">준비 완료!</b> 사과/아이템 수량을 입력하고 <b>시뮬레이션 실행</b>을 누르세요.';
         document.querySelector('#runBtn').disabled = false;
         document.querySelector('#resetBtn').disabled = false;
+
         document.querySelector('#dlBtn').addEventListener('click', ()=>{
           const blob = new Blob([document.querySelector('#out').textContent], {type:'text/plain;charset=utf-8'});
           const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'run_log.txt' });

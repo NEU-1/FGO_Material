@@ -14,8 +14,7 @@ FGO 이벤트 주회 시뮬레이터 (Pro v2.5 — 전체 주석/정렬/정밀 �
 입력 파일 스키마(요지)
 ----------------------
 - materials.json
-  - materials: [{item, tier, ap_per_item, 보유량?, 목표량?, lack?, use?}, ...]  ← **정렬 기준**
-    · 기본은 보유량/목표량으로 부족(lack)을 계산하고, 키가 없을 땐 기존 have/need 또는 lack를 호환 지원
+  - materials: [{item, tier, ap_per_item, have, need, lack, use}, ...]  ← **정렬 기준**
   - rarity_map: {gold:[..], silver:[..], bronze:[..]}
 - event_quests.json
   - event_quests: [
@@ -141,59 +140,19 @@ except Exception:
 # =============================================================================
 
 def to_material_index(materials_json: dict) -> Dict[str, dict]:
-    """materials 배열 → {이름:{ap,lack,use}} 인덱스 구성
-    변경 사항:
-    - 파일에 lack/use 키가 없더라도 동작하도록 호환 처리
-    - 부족(lack)은 기본적으로 max(목표-보유, 0)으로 계산
-      · 한국어 키: 보유량/목표량
-      · 영문 키: have/need (이전 버전 호환)
-      · 위 키가 모두 없을 때만 파일의 lack 값을 그대로 사용(레거시)
-    - use 키가 없으면 True로 간주
-    """
+    """materials 배열 → {이름:{ap,lack,use}} 인덱스 구성"""
     index: Dict[str, dict] = {}
     for m in materials_json.get("materials", []):
         name = str(m.get("item") or "").strip()
         if not name:
             continue
-
-        # AP/개
         ap_raw = m.get("ap_per_item")
-        ap_val = float(ap_raw) if ap_raw is not None else 0.0
-
-        # 새 스키마(한국어) 또는 구 스키마(영문) 지원
-        have = m.get("보유량")
-        need = m.get("목표량")
-        if have is None and need is None:
-            have = m.get("have")
-            need = m.get("need")
-
-        # 부족 계산(기본)
-        lack_calc = None
-        try:
-            if have is not None or need is not None:
-                hv = float(have or 0.0)
-                nd = float(need or 0.0)
-                lack_calc = max(nd - hv, 0.0)
-        except Exception:
-            lack_calc = None
-
-        # 레거시 lack 값(최후의 수단)
-        if lack_calc is None:
-            lack_raw = m.get("lack")
-            lack_calc = float(lack_raw) if lack_raw is not None else 0.0
-
-        # use 기본 True (문자/불리언 모두 허용)
-        use_val = m.get("use")
-        if isinstance(use_val, str):
-            use_flag = use_val.strip().upper() != "N"
-        elif isinstance(use_val, (int, float)):
-            use_flag = bool(use_val)
-        elif isinstance(use_val, bool):
-            use_flag = use_val
-        else:
-            use_flag = True  # 키가 없는 경우
-
-        index[name] = {"ap": ap_val, "lack": lack_calc, "use": use_flag}
+        lack_raw = m.get("lack")
+        index[name] = {
+            "ap": float(ap_raw) if ap_raw is not None else 0.0,
+            "lack": float(lack_raw) if lack_raw is not None else 0.0,
+            "use": str(m.get("use") or "Y").upper() == "Y",
+        }
     return index
 
 def init_rarity_map_from_materials(materials_json: dict) -> None:

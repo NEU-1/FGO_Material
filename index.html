@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <title>FGO 이벤트 주회 시뮬레이터 – 웹 간편판 (CDN)</title>
+  <title>FGO 이벤트 주회 시뮬레이터(CDN)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <style>
@@ -35,7 +35,7 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>FGO 이벤트 주회 시뮬레이터 – 웹 간편판</h1>
+      <h1>FGO 이벤트 주회 시뮬레이터</h1>
       <div class="sub">
         첫 로딩은 브라우저가 파이썬을 준비하느라 <b>10~25초</b> 걸릴 수 있어요. 준비되면 <b>사과 수량</b>과 <b>아이템 수량의 현재/목표</b>를 입력하고 <b>실행</b>을 누르세요.
       </div>
@@ -57,7 +57,8 @@
         <div><label class="sm">금사과</label><input id="apple-gold" type="number" min="0" step="1" value="0"></div>
         <div><label class="sm">은사과</label><input id="apple-silver" type="number" min="0" step="1" value="0"></div>
         <div><label class="sm">청사과</label><input id="apple-blue" type="number" min="0" step="1" value="0"></div>
-        <div><label class="sm">동사과</label><input id="apple-copper" type="number" min="0" step="1" value="0"></div>
+        <div><label class="sm">동사과</label><input id="apple-copper" type="number" min="0" step="1" value="0">
+  <div class="controls" style="margin-top:6px">    <label>금사과 회복량(AP)</label>     <input id="aprec-gold" type="number" step="1" min="1" placeholder="100" style="width:120px">     <label style="margin-left:8px">은사과 회복량(AP)</label>     <input id="aprec-silver" type="number" step="1" min="1" placeholder="50" style="width:120px">    <span class="hint" style="margin-left:8px">미기입 시 기본값(100/50)이 사용됩니다</span>  </div></div>
       </div>
 
       <!-- 재료 표/검색/업로드 -->
@@ -284,6 +285,12 @@ const out = document.querySelector('#out');
       blue:   Number(document.querySelector('#apple-blue').value||0),
       copper: Number(document.querySelector('#apple-copper').value||0),
     };
+    // 사용자 AP 회복량(미입력시 기본)
+    const aprec = {
+      gold:   Number(document.querySelector('#aprec-gold')?.value || 146),
+      silver: Number(document.querySelector('#aprec-silver')?.value || 73),
+    };
+
 
     applyAppleDefaultsFromMaterials();
     await writeFiles();
@@ -316,7 +323,7 @@ core.TABLE_FORMAT = "text"
 core.TABLE_STYLE  = "ascii"
 core.main()
 open("run_log.txt","r",encoding="utf-8").read()
-    `.replace('__JS_AP__', JSON.stringify(apples));
+    `.replace('__JS_AP__', JSON.stringify(apples)).replace('__JS_APREC__', JSON.stringify(aprec));
 
     const log = await pyodide.runPythonAsync(py);
     out.textContent = log || '(로그 비어 있음)';
@@ -424,6 +431,16 @@ function applyAppleDefaultsFromMaterials(){
     setIf('#apple-copper', copper);
   }catch(e){ console.warn('applyAppleDefaultsFromMaterials error', e); }
 }
+
+</script>
+<script>
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const g=document.querySelector('#aprec-gold');
+  const s=document.querySelector('#aprec-silver');
+  if (g && (g.value==='' || g.value==null)) g.value='';
+  if (s && (s.value==='' || s.value==null)) s.value='';
+});
 
 </script>
 </body>

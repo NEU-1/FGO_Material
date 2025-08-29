@@ -40,6 +40,9 @@ import unicodedata
 import difflib
 from typing import Dict, List, Tuple, Optional
 
+# When True, mat_ap() ignores 'lack<=0' gating (used for summary tables only)
+SUMMARY_IGNORE_NEED = False
+
 # =============================================================================
 # 상수/전역 설정
 # =============================================================================
@@ -1292,8 +1295,10 @@ def main():
                 w(f"룰렛: 티켓 {f2(tickets_acc_by_event.get(ev, 0.0))}/{f2(need_tk)} (+{f2(last_tpr_for_run)}/판) | 환급AP +{f2(refund_gain)} | AP 풀 {f2(ap_pool)} | 예장 {cur_int}장(보너스 {ce_state['bonus']}{suffix})")
 
             # 이번 판 반영 후 최적 효율 요약(정보용)
+            SUMMARY_IGNORE_NEED = True
             bests_after = _compute_all_bests(targets, quests_def, items_def, materials_index, args.ap_cost, args.diff, respect_use_flag)
             w("\n현재 이벤트 효율 요약:")
+            SUMMARY_IGNORE_NEED = False
             _print_eff_table(w, bests_after, args.ap_cost)
             w(""); w("")
 

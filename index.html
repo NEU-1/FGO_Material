@@ -37,6 +37,10 @@
 @media (max-width: 720px){
   .controls.apple-row{ flex-wrap:wrap; }
 }
+.controls.apple-row{ display:flex; gap:14px; align-items:center; flex-wrap:nowrap; }
+.controls.apple-row label{ min-width:54px }
+.controls.apple-row input[type="number"]{ width:120px }
+@media (max-width: 720px){ .controls.apple-row{ flex-wrap:wrap; } }
 
 </style>
 </head>
@@ -62,10 +66,16 @@
 
       <!-- 사과 입력 -->
       <div class="grp">
-        <div><label class="sm">금사과</label><div class="controls apple-row" style="gap:12px;flex-wrap:nowrap"> <input id="apple-gold" type="number" min="0" step="1" value="0"></div>
-        <div><label class="sm">은사과</label><input id="apple-silver" type="number" min="0" step="1" value="0"></div>
-        <div><label class="sm">청사과</label><input id="apple-blue" type="number" min="0" step="1" value="0"></div>
-        <div><label class="sm">동사과</label><input id="apple-copper" type="number" min="0" step="1" value="0"> </div>
+        <div><label class="sm">금사과</label><div class="controls apple-row" style="gap:12px;flex-wrap:nowrap"> <div class="controls apple-row" style="gap:14px;align-items:center;flex-wrap:nowrap">
+  <label for="apple-gold">금사과</label>
+  <input id="apple-gold" type="number" min="0" step="1" value="0" />
+  <label for="apple-silver">은사과</label>
+  <input id="apple-silver" type="number" min="0" step="1" value="0" />
+  <label for="apple-blue">청사과</label>
+  <input id="apple-blue" type="number" min="0" step="1" value="0" />
+  <label for="apple-copper">동사과</label>
+  <input id="apple-copper" type="number" min="0" step="1" value="0" />
+</div> </div>
   <div class="controls" style="margin-top:6px">    <label>금사과 회복량(AP)</label>     <input id="aprec-gold" type="number" step="1" min="1" placeholder="146" style="width:120px">     <label style="margin-left:8px">은사과 회복량(AP)</label>     <input id="aprec-silver" type="number" step="1" min="1" placeholder="73" style="width:120px">    <span class="hint" style="margin-left:8px">미기입 시 기본값(146/73)이 사용됩니다</span>  </div></div>
       </div>
 

@@ -122,7 +122,6 @@
 
     // 업로드/리셋 기준 스냅샷(Reset 버튼 동작용)
     let RESET_SNAPSHOT = null;
-let APPLE_DIRTY = false;
 
     function shouldHide(name){
       if (EXACT_HIDE.has(name)) return true;
@@ -285,7 +284,6 @@ const out = document.querySelector('#out');
       copper: Number(document.querySelector('#apple-copper').value||0),
     };
 
-    applyAppleDefaultsFromMaterials();
     await writeFiles();
     await writeCorePyFromFile();
 
@@ -371,7 +369,6 @@ const file = ev.target.files && ev.target.files[0];
 
         await bootPyodide();
         document.querySelector('#boot').innerHTML = '<b class="ok">준비 완료!</b> 사과/아이템 수량을 입력하고 <b>시뮬레이션 실행</b>을 누르세요.';
-            applyAppleDefaultsFromMaterials();
         document.querySelector('#runBtn').disabled = false;
         document.querySelector('#resetBtn').disabled = false;
 
@@ -389,42 +386,5 @@ const file = ev.target.files && ev.target.files[0];
       }
     })();
   </script>
-<script>
-
-document.addEventListener('DOMContentLoaded', ()=>{
-  ['#apple-gold','#apple-silver','#apple-blue','#apple-copper'].forEach(sel=>{
-    const el = document.querySelector(sel);
-    if (el){
-      el.addEventListener('input', ()=>{ APPLE_DIRTY = true; }, { once:false });
-      el.addEventListener('change', ()=>{ APPLE_DIRTY = true; }, { once:false });
-    }
-  });
-});
-
-</script>
-<script>
-
-function applyAppleDefaultsFromMaterials(){
-  if (APPLE_DIRTY) return;
-  try{
-    const rows = (BASE.materials && Array.isArray(BASE.materials.materials)) ? BASE.materials.materials : [];
-    let gold=null, silver=null, blue=null, copper=null;
-    for (const m of rows){
-      const name = String(m.item||'');
-      const have = (('보유량' in m) ? m['보유량'] : (m.have ?? 0)) || 0;
-      if (name==='금사과')   gold   = have;
-      if (name==='은사과')   silver = have;
-      if (name==='청사과')   blue   = have;
-      if (name==='동사과')   copper = have;
-    }
-    const setIf = (sel, v)=>{ const el=document.querySelector(sel); if (el && v!=null) el.value = Number(v)||0; };
-    setIf('#apple-gold', gold);
-    setIf('#apple-silver', silver);
-    setIf('#apple-blue', blue);
-    setIf('#apple-copper', copper);
-  }catch(e){ console.warn('applyAppleDefaultsFromMaterials error', e); }
-}
-
-</script>
 </body>
 </html>

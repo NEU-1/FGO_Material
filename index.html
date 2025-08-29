@@ -30,7 +30,15 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     .bar{height:8px;border:1px solid #1f2937;border-radius:999px;overflow:hidden}.bar>i{display:block;height:100%;background:linear-gradient(90deg,#0891b2,#22d3ee);width:0%}
     .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}.right{margin-left:auto}
-  </style>
+/* Apple inputs aligned in a single row */
+.controls.apple-row{ display:flex; align-items:center; gap:12px; flex-wrap:nowrap; }
+.controls.apple-row label{ min-width:56px }
+.controls.apple-row input[type="number"]{ width:120px }
+@media (max-width: 720px){
+  .controls.apple-row{ flex-wrap:wrap; }
+}
+
+</style>
 </head>
 <body>
   <div class="wrap">
@@ -54,11 +62,11 @@
 
       <!-- 사과 입력 -->
       <div class="grp">
-        <div><label class="sm">금사과</label><input id="apple-gold" type="number" min="0" step="1" value="0"></div>
+        <div><label class="sm">금사과</label><div class="controls apple-row" style="gap:12px;flex-wrap:nowrap"> <input id="apple-gold" type="number" min="0" step="1" value="0"></div>
         <div><label class="sm">은사과</label><input id="apple-silver" type="number" min="0" step="1" value="0"></div>
         <div><label class="sm">청사과</label><input id="apple-blue" type="number" min="0" step="1" value="0"></div>
-        <div><label class="sm">동사과</label><input id="apple-copper" type="number" min="0" step="1" value="0">
-  <div class="controls" style="margin-top:6px">    <label>금사과 회복량(AP)</label>     <input id="aprec-gold" type="number" step="1" min="1" placeholder="100" style="width:120px">     <label style="margin-left:8px">은사과 회복량(AP)</label>     <input id="aprec-silver" type="number" step="1" min="1" placeholder="50" style="width:120px">    <span class="hint" style="margin-left:8px">미기입 시 기본값(100/50)이 사용됩니다</span>  </div></div>
+        <div><label class="sm">동사과</label><input id="apple-copper" type="number" min="0" step="1" value="0"> </div>
+  <div class="controls" style="margin-top:6px">    <label>금사과 회복량(AP)</label>     <input id="aprec-gold" type="number" step="1" min="1" placeholder="146" style="width:120px">     <label style="margin-left:8px">은사과 회복량(AP)</label>     <input id="aprec-silver" type="number" step="1" min="1" placeholder="73" style="width:120px">    <span class="hint" style="margin-left:8px">미기입 시 기본값(146/73)이 사용됩니다</span>  </div></div>
       </div>
 
       <!-- 재료 표/검색/업로드 -->
@@ -319,6 +327,17 @@ for k,v in ${'__JS_AP__'}.items():
     except Exception:
         core.APPLE_COUNTS[k] = 0.0
 
+# 사용자 지정 사과 AP 회복량(금/은)
+try:
+    core.APPLE_AP_POOL
+except AttributeError:
+    core.APPLE_AP_POOL = {}
+for k,v in ${'__JS_APREC__'}.items():
+    try:
+        if v is not None:
+            core.APPLE_AP_POOL[k] = float(v)
+    except Exception:
+        pass
 core.TABLE_FORMAT = "text"
 core.TABLE_STYLE  = "ascii"
 core.main()

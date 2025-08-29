@@ -172,6 +172,7 @@ const tbody = document.querySelector('#matTable tbody');
     if (kw && !rawName.includes(kw)) continue;
 
     const isQP = (rawName === NAME_QP);
+    const is인연 = (rawName === NAME_인연);
     const haveRaw = ('보유량' in m) ? m['보유량'] : (m.have ?? 0);
     const needRaw = ('목표량' in m) ? m['목표량'] : (m.need ?? 0);
     const dispHave = isQP ? Math.floor(Number(haveRaw||0)/MILLION) : Number(haveRaw||0);

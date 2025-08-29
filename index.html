@@ -54,11 +54,18 @@
 
       <!-- 사과 입력 -->
       <div class="grp">
-        <div><label class="sm">금사과</label><input id="apple-gold" type="number" min="0" step="1" value="0"></div>
-        <div><label class="sm">은사과</label><input id="apple-silver" type="number" min="0" step="1" value="0"></div>
-        <div><label class="sm">청사과</label><input id="apple-blue" type="number" min="0" step="1" value="0"></div>
-        <div><label class="sm">동사과</label><input id="apple-copper" type="number" min="0" step="1" value="0"></div>
+        <div><label class="sm">금사과</label><input id="apple-gold" type="number" min="0" step="1" value="" placeholder="0"></div>
+        <div><label class="sm">은사과</label><input id="apple-silver" type="number" min="0" step="1" value="" placeholder="0"></div>
+        <div><label class="sm">청사과</label><input id="apple-blue" type="number" min="0" step="1" value="" placeholder="0"></div>
+        <div><label class="sm">동사과</label><input id="apple-copper" type="number" min="0" step="1" value="" placeholder="0"></div>
+      
+      <!-- 사과 AP 회복량 입력 -->
+      <div class="grp">
+        <div><label class="sm">금사과 회복량(AP)</label><input id="aprec-gold" type="number" min="0" step="1" value="" placeholder="0"></div>
+        <div><label class="sm">은사과 회복량(AP)</label><input id="aprec-silver" type="number" min="0" step="1" value="" placeholder="0"></div>
+        <div class="hint" style="align-self:flex-end;margin-left:6px">미기입 시 기본값(146/73)이 사용됩니다</div>
       </div>
+    </div>
 
       <!-- 재료 표/검색/업로드 -->
       <div class="row" style="margin:12px 0">
@@ -181,8 +188,8 @@ const tbody = document.querySelector('#matTable tbody');
       <td>${labelFor(rawName)}</td>
       <td>${m.tier??''}</td>
       <td>${(m.ap_per_item??0).toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-      <td><input type="number" step="1" value="${dispHave}" data-name="${rawName}" data-field="보유량" ${isForceNeed1M(rawName)?'disabled':''}></td>
-      <td><input type="number" step="1" value="${dispNeed}" data-name="${rawName}" data-field="목표량" ${isForceNeed1M(rawName)?'disabled':''}></td>
+      <td><input type="number" step="1" value="${dispHave===0?'':dispHave}" placeholder="0" data-name="${rawName}" data-field="보유량" ${isForceNeed1M(rawName)?'disabled':''}></td>
+      <td><input type="number" step="1" value="${dispNeed===0?'':dispNeed}" placeholder="0" data-name="${rawName}" data-field="목표량" ${isForceNeed1M(rawName)?'disabled':''}></td>
     `;
     tbody.appendChild(tr);
   }
@@ -210,11 +217,13 @@ const map = new Map((BASE.materials.materials||[]).map(m=>[String(m.item||''), m
       }
       applyHiddenItemPolicies();
       renderTable(document.querySelector('#search').value||'');
-      // 사과 입력은 0으로 초기화
-      document.querySelector('#apple-gold').value   = 0;
-      document.querySelector('#apple-silver').value = 0;
-      document.querySelector('#apple-blue').value   = 0;
-      document.querySelector('#apple-copper').value = 0;
+      
+      const _ag = document.querySelector('#aprec-gold'); if(_ag) _ag.value='';
+      const _as = document.querySelector('#aprec-silver'); if(_as) _as.value='';// 사과 입력은 0으로 초기화
+      document.querySelector('#apple-gold').value   = '';
+      document.querySelector('#apple-silver').value = '';
+      document.querySelector('#apple-blue').value   = '';
+      document.querySelector('#apple-copper').value = '';
     }
 
     // ===== 3) Pyodide 부팅 & 파일 쓰기 =====
@@ -284,6 +293,14 @@ const out = document.querySelector('#out');
       copper: Number(document.querySelector('#apple-copper').value||0),
     };
 
+    // 사용자 AP 회복량 (빈칸 또는 0/음수면 기본 146/73 사용)
+    const _rg = Number(document.querySelector('#aprec-gold')?.value || 0);
+    const _rs = Number(document.querySelector('#aprec-silver')?.value || 0);
+    const aprec = {
+      gold:   (_rg > 0 ? _rg : 146),
+      silver: (_rs > 0 ? _rs : 73),
+    };
+
     await writeFiles();
     await writeCorePyFromFile();
 
@@ -312,11 +329,22 @@ for k,v in ${'__JS_AP__'}.items():
 
 core.TABLE_FORMAT = "text"
 core.TABLE_STYLE  = "ascii"
+# 사용자 지정 사과 AP 회복량(금/은) 반영
+try:
+    core.APPLE_AP_BY_POOL
+except AttributeError:
+    core.APPLE_AP_BY_POOL = dict(core.APPLE_AP_BY_POOL)
+for k,v in ${'__JS_APREC__'}.items():
+    try:
+        core.APPLE_AP_BY_POOL[k] = float(v)
+    except Exception:
+        pass
 core.main()
 open("run_log.txt","r",encoding="utf-8").read()
     `.replace('__JS_AP__', JSON.stringify(apples));
+    const py2 = py.replace('__JS_APREC__', JSON.stringify(aprec));
 
-    const log = await pyodide.runPythonAsync(py);
+    const log = await pyodide.runPythonAsync(py2);
     out.textContent = log || '(로그 비어 있음)';
     document.querySelector('#dlBtn').disabled = false;
   } catch (e) {
@@ -386,5 +414,29 @@ const file = ev.target.files && ev.target.files[0];
       }
     })();
   </script>
+
+  <script>
+  function normalizeLeadingZeros(el){ try{ el.value = el.value.replace(/^0+(?=\d)/,''); }catch(e){} }
+  function attachNumericUX(){
+    const sels = ['#apple-gold','#apple-silver','#apple-blue','#apple-copper','#aprec-gold','#aprec-silver'];
+    sels.forEach(sel=>{
+      const el = document.querySelector(sel); if(!el) return;
+      if (el.value === '0') el.value = '';
+      el.placeholder = el.placeholder || '0';
+      el.addEventListener('focus', ()=>{ if(el.value==='0') el.value=''; el.select(); });
+      el.addEventListener('input', ()=> normalizeLeadingZeros(el));
+    });
+    document.addEventListener('focusin', (e)=>{
+      const t = e.target;
+      if (t && t.matches('input[type="number"][data-name]')){ if(t.value==='0') t.value=''; t.select(); }
+    });
+    document.addEventListener('input', (e)=>{
+      const t = e.target;
+      if (t && t.matches('input[type="number"][data-name]')) normalizeLeadingZeros(t);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', attachNumericUX);
+  </script>
+    
 </body>
 </html>

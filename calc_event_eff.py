@@ -44,7 +44,7 @@ from typing import Dict, List, Tuple, Optional
 # 상수/전역 설정
 # =============================================================================
 
-APPLE_AP_BY_POOL = {"gold": 145.0, "silver": 73.0, "blue": 40.0, "copper": 10.0}
+APPLE_AP_BY_POOL = {"gold": 146.0, "silver": 73.0, "blue": 40.0, "copper": 10.0}
 APPLE_NAME_TO_POOL = {"금사과": "gold", "은사과": "silver", "청사과": "blue", "동사과": "copper"}
 APPLE_ITEM_NAMES = set(APPLE_NAME_TO_POOL.keys())
 APPLE_COUNTS = {"gold": 1000, "silver": 295, "blue": 2000, "copper": 502}

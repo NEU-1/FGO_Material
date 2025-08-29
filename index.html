@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <style>
     :root { --bg:#0f172a; --card:#111827; --muted:#94a3b8; --fg:#e5e7eb; --acc:#22d3ee; --ok:#34d399; --err:#f87171 }
-    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Apple SD Gothic Neo,'Noto Sans KR',sans-serif}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,'Noto Sans KR',sans-serif}
     .wrap{max-width:1100px;margin:40px auto;padding:0 16px}
-    .card{background:linear-gradient(180deg,#0b1223,#0b1223 60%,#0b1223aa);border:1px solid #1f2937;border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .card{background:#0b1223;border:1px solid #1f2937;border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
     h1{font-size:22px;margin:0 0 10px} .sub{color:var(--muted);font-size:14px;margin-bottom:16px}
     .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
     .grow{flex:1}
@@ -110,14 +110,13 @@
       return { materials, quests, items };
     }
 
-    // ===== 2) 재료표 렌더링 (사과/퓨어프리즘/인연/종화/묘목 숨김, QP 표기 보정) =====
+    // ===== 2) 재료표 렌더링 =====
     let BASE = { materials:null, quests:null, items:null };
     const APPLE_NAMES = ["금사과","은사과","청사과","동사과"];
     const EXCLUDE_ROWS = new Set([...APPLE_NAMES, "퓨어프리즘", "인연", "종화4", "묘목"]);
     function isExcluded(name){
       if(EXCLUDE_ROWS.has(name)) return true;
-      // 모든 '종화' 계열 숨김
-      if(name && name.includes("종화")) return true;
+      if(name && name.includes("종화")) return true; // 종화 전종 숨김
       return false;
     }
 
@@ -146,7 +145,6 @@
     }
 
     function initAppleInputsFromMaterials() {
-      // materials.json에 사과 행이 있을 경우 초기값으로 사용 (표에는 표시 안 함)
       const rows = BASE.materials.materials || [];
       const map = new Map(rows.map(m=>[String(m.item||''), m]));
       const get = (nm) => Number((map.get(nm)||{}).have||0);
@@ -157,7 +155,7 @@
     }
 
     function readEditsIntoMaterialsAndApples() {
-      // 1) 표 입력값 → materials에 반영
+      // 표 입력값 → materials 반영
       const map = new Map(BASE.materials.materials.map(m=>[String(m.item||''), m]));
       const inputs = document.querySelectorAll('input[data-name]');
       inputs.forEach(inp=>{
@@ -169,26 +167,16 @@
         row[field] = Number.isFinite(v) ? v : 0;
       });
 
-      // 1-1) 인연/종화 목표 100만으로 고정 (표에는 숨김)
+      // 인연/종화 목표 100만, 숨긴 건 use='N', 부족 0
       for (const m of BASE.materials.materials) {
         const name = String(m.item||'');
-        if (name.includes('인연') || name.includes('종화')) {
-          m.need = 1_000_000;
-        }
-      }
-
-      // 1-2) 숨긴 항목은 계산에 영향 없도록 use='N' & 부족=0
-      for (const m of BASE.materials.materials) {
-        const name = String(m.item||'');
-        if (isExcluded(name)) {
-          m.use = 'N';
-        }
+        if (name.includes('인연') || name.includes('종화')) m.need = 1_000_000;
+        if (isExcluded(name)) m.use = 'N';
         const have = Number(m.have||0), need = Number(m.need||0);
-        m.lack = Math.max(need - have, 0);
-        if (isExcluded(name)) m.lack = 0;
+        m.lack = isExcluded(name) ? 0 : Math.max(need - have, 0);
       }
 
-      // 2) 사과 입력값은 시뮬레이터 전역으로만 전달
+      // 사과 값은 별도 전달
       return {
         gold:   Number(document.querySelector('#apple-gold').value||0),
         silver: Number(document.querySelector('#apple-silver').value||0),
@@ -216,8 +204,11 @@
       pyodide.FS.writeFile('event_items.json', JSON.stringify(BASE.items), { encoding:'utf8' });
       pyodide.FS.writeFile('apples.json', JSON.stringify(applesOverride), { encoding:'utf8' });
     }
-    async function writeSimulatorPy() {
-      pyodide.FS.writeFile('simulator.py', window.SIMULATOR_PY_SOURCE.trimStart(), { encoding:'utf8' });
+
+    // 👉 핵심 변경: simulator.py를 외부 파일에서 그대로 불러와 FS에 기록
+    async function writeSimulatorPyFromFile() {
+      const code = await fetch('simulator.py').then(r=>r.text());
+      pyodide.FS.writeFile('simulator.py', code, { encoding:'utf8' });
     }
 
     // ===== 4) 실행 =====
@@ -228,7 +219,7 @@
       try {
         const apples = readEditsIntoMaterialsAndApples();
         await writeFiles(apples);
-        await writeSimulatorPy();
+        await writeSimulatorPyFromFile();
 
         const py = `
 import sys, json, importlib.util
@@ -289,19 +280,6 @@ open("run_log.txt","r",encoding="utf-8").read()
         document.querySelector('#boot').innerHTML = '<b class="err">초기화 실패:</b> '+err;
       }
     })();
-
-    // ===== 6) 시뮬레이터 파이썬 (v2.5) — _csv_escape의 \n/\r 이중 이스케이프 적용 =====
-    window.SIMULATOR_PY_SOURCE = `
-# -*- coding: utf-8 -*-
-# (중략: 대부분 동일 — 표 렌더/효율계산/로깅 등)
-# ... 위쪽 코드 동일 ...
-def _csv_escape(s: str) -> str:
-    s = str(s)
-    if any(ch in s for ch in [',', '"', '\\\\n', '\\\\r']):
-        return '"' + s.replace('"', '""') + '"'
-    return s
-# ... 나머지 전체 코드는 이전 버전과 동일하게 포함됩니다 ...
-`;
   </script>
 </body>
 </html>

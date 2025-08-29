@@ -231,28 +231,28 @@
           "stage": "메인",
           "diff": "90+",
           "drops": [
-            { "item": "황금가마",   "rate": 0.232  },
-            { "item": "소라껍데기", "rate": 0.536 },
+            { "item": "황금가마",   "rate": 0.259  },
+            { "item": "소라껍데기", "rate": 0.517 },
             { "item": "인연", "rate": 10.98 }
           ],
           "box": {
-            "gold":  { "base": 3.94 },
-            "silver":{ "base": 4 },
-            "bronze":{ "base": 3.96 }
+            "gold":  { "base": 3.72 },
+            "silver":{ "base": 3.76 },
+            "bronze":{ "base": 3.76 }
           }
         },
         {
           "stage": "메인",
           "diff": "90++",
           "drops": [
-            { "item": "진리의알",     "rate": 0.302 },
+            { "item": "진리의알",     "rate": 0.309 },
             { "item": "유니버셜큐브", "rate": 0.632 },
             { "item": "인연", "rate": 13.18 }
           ],
           "box": {
-            "gold":  { "base": 4.14 },
-            "silver":{ "base": 4.22 },
-            "bronze":{ "base": 4.18 }
+            "gold":  { "base": 4.2 },
+            "silver":{ "base": 4.2 },
+            "bronze":{ "base": 4.2 }
           }
         }
       ]

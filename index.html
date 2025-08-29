@@ -68,13 +68,13 @@
       <div class="grp">
         <div><label class="sm">금사과</label><div class="controls apple-row" style="gap:12px;flex-wrap:nowrap"> <div class="controls apple-row" style="gap:14px;align-items:center;flex-wrap:nowrap">
   <label for="apple-gold">금사과</label>
-  <input id="apple-gold" type="number" min="0" step="1" value="" placeholder="0" />
+  <input id="apple-gold" type="number" min="0" step="1" value="0" />
   <label for="apple-silver">은사과</label>
-  <input id="apple-silver" type="number" min="0" step="1" value="" placeholder="0" />
+  <input id="apple-silver" type="number" min="0" step="1" value="0" />
   <label for="apple-blue">청사과</label>
-  <input id="apple-blue" type="number" min="0" step="1" value="" placeholder="0" />
+  <input id="apple-blue" type="number" min="0" step="1" value="0" />
   <label for="apple-copper">동사과</label>
-  <input id="apple-copper" type="number" min="0" step="1" value="" placeholder="0" />
+  <input id="apple-copper" type="number" min="0" step="1" value="0" />
 </div> </div>
   <div class="controls" style="margin-top:6px">    <label>금사과 회복량(AP)</label>     <input id="aprec-gold" type="number" step="1" min="1" placeholder="146" style="width:120px">     <label style="margin-left:8px">은사과 회복량(AP)</label>     <input id="aprec-silver" type="number" step="1" min="1" placeholder="73" style="width:120px">    <span class="hint" style="margin-left:8px">미기입 시 기본값(146/73)이 사용됩니다</span>  </div></div>
       </div>
@@ -201,8 +201,8 @@ const tbody = document.querySelector('#matTable tbody');
       <td>${labelFor(rawName)}</td>
       <td>${m.tier??''}</td>
       <td>${(m.ap_per_item??0).toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-      <td><input type="number" step="1" value="${dispHave===0?'':dispHave}" placeholder="0" data-name="${rawName}" data-field="보유량" ${isForceNeed1M(rawName)?'disabled':''}></td>
-      <td><input type="number" step="1" value="${dispNeed===0?'':dispNeed}" placeholder="0" data-name="${rawName}" data-field="목표량" ${isForceNeed1M(rawName)?'disabled':''}></td>
+      <td><input type="number" step="1" value="${dispHave}" data-name="${rawName}" data-field="보유량" ${isForceNeed1M(rawName)?'disabled':''}></td>
+      <td><input type="number" step="1" value="${dispNeed}" data-name="${rawName}" data-field="목표량" ${isForceNeed1M(rawName)?'disabled':''}></td>
     `;
     tbody.appendChild(tr);
   }
@@ -453,18 +453,7 @@ function applyAppleDefaultsFromMaterials(){
       if (name==='청사과')   blue   = have;
       if (name==='동사과')   copper = have;
     }
-    const setIf = (sel, v)=>{
-    const el = document.querySelector(sel);
-    if (!el || v==null) return;
-    const num = Number(v);
-    if (!Number.isFinite(num)) return;
-    if (num === 0){
-      el.value = '';
-      el.placeholder = '0';
-    }else{
-      el.value = String(num);
-    }
-  };
+    const setIf = (sel, v)=>{ const el=document.querySelector(sel); if (el && v!=null) el.value = Number(v)||0; };
     setIf('#apple-gold', gold);
     setIf('#apple-silver', silver);
     setIf('#apple-blue', blue);
@@ -483,37 +472,5 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 </script>
-
-<script>
-function normalizeLeadingZeros(el){
-  try { el.value = el.value.replace(/^0+(?=\d)/, ''); } catch(e){}
-}
-function attachNumericUX(){
-  const sels = ['#apple-gold','#apple-silver','#apple-blue','#apple-copper'];
-  sels.forEach(sel=>{
-    const el = document.querySelector(sel);
-    if (!el) return;
-    el.placeholder = el.placeholder || '0';
-    if (el.value === '0') el.value = '';
-    el.addEventListener('focus', ()=>{ if (el.value === '0') el.value = ''; el.select(); });
-    el.addEventListener('input', ()=>{ normalizeLeadingZeros(el); });
-  });
-  document.addEventListener('focusin', (e)=>{
-    const t = e.target;
-    if (t && t.matches('input[type="number"][data-name]')){
-      if (t.value === '0') t.value = '';
-      t.select();
-    }
-  });
-  document.addEventListener('input', (e)=>{
-    const t = e.target;
-    if (t && t.matches('input[type="number"][data-name]')){
-      normalizeLeadingZeros(t);
-    }
-  });
-}
-document.addEventListener('DOMContentLoaded', attachNumericUX);
-</script>
-
 </body>
 </html>

@@ -1256,7 +1256,7 @@ def main():
             # 이번 판 반영 후 최적 효율 요약(정보용)
             SUMMARY_IGNORE_NEED = True
             bests_after = _compute_all_bests(targets, quests_def, items_def, materials_index, args.ap_cost, args.diff, respect_use_flag)
-            w(\"\n현재 이벤트 효율 요약:\")
+            w("\n현재 이벤트 효율 요약:")
             _print_eff_table(w, bests_after, args.ap_cost)
             SUMMARY_IGNORE_NEED = False
             w(""); w("")

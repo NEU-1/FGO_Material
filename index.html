@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <title>FGO 이벤트 주회 시뮬레이터 – 웹 간편판 (CDN)</title>
+  <title>FGO 이벤트 주회 시뮬레이터 (CDN)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <style>
@@ -35,7 +35,7 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>FGO 이벤트 주회 시뮬레이터 – 웹 간편판</h1>
+      <h1>FGO 이벤트 주회 시뮬레이터</h1>
       <div class="sub">
         첫 로딩은 브라우저가 파이썬을 준비하느라 <b>10~25초</b> 걸릴 수 있어요. 준비되면 <b>사과 수량</b>과 <b>아이템 수량의 현재/목표</b>를 입력하고 <b>실행</b>을 누르세요.
       </div>
@@ -132,6 +132,7 @@
     }
     function labelFor(name){
       if (name === NAME_QP) return 'QP(100만 단위)';
+      if (name === NAME_인연) return '인연(100 단위)';
       return name;
     }
 

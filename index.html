@@ -349,17 +349,43 @@ document.querySelector('#out').textContent = log || '(로그 비어 있음)';
   }
 }
 
+
 function applyHaveAndPlanById(haveMap, planMap){
-  const idx = buildMaterialIndexById();
-  // 1) apply have
+  const rows = (BASE.materials && Array.isArray(BASE.materials.materials)) ? BASE.materials.materials : [];
+
+  // 1) HAVE: default 0 for all (missing ids -> 0), then fill from haveMap if provided
   if (haveMap){
-    for (const [id, hv] of Object.entries(haveMap)){
-      if (['1','2','3','4'].includes(String(id))) continue; // apples handled separately
-      const row = idx.get(String(id));
-      if (!row) continue;
-      const v = Number(hv)||0;
-      row.have = v;
+    for (const row of rows){
+      if (!row || row.id == null) continue;
+      const key = String(row.id);
+      const hv  = (Object.prototype.hasOwnProperty.call(haveMap, key) ? Number(haveMap[key]) : 0);
+      row.have = Number.isFinite(hv) ? hv : 0;
     }
+  }
+
+  // 2) NEED from PLAN: default to 'have' (lack=0) then add plan lack if provided
+  const planProvided = !!planMap;
+  for (const row of rows){
+    if (!row || row.id == null) continue;
+    const have = Number(row.have||0);
+    let need = have;
+    if (planProvided){
+      const key = String(row.id);
+      const lk  = (Object.prototype.hasOwnProperty.call(planMap, key) ? Number(planMap[key]) : 0);
+      const lack = Number.isFinite(lk) ? Math.max(lk,0) : 0;
+      need = have + lack;
+    }
+    row.need = need;
+  }
+
+  // 3) Recompute lack for all rows
+  for (const row of rows){
+    const have = Number(row.have||0);
+    const need = Number(row.need||0);
+    row.lack = Math.max(need - have, 0);
+  }
+}
+
   }
   // 2) apply plan (lack -> need = have + lack)
   if (planMap){

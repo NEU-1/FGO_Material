@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>FGO 이벤트 주회 시뮬레이터 – 웹 간편판 (CDN)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <style>
+    :root{--bg:#0f172a;--card:#0b1223;--muted:#94a3b8;--fg:#e5e7eb;--acc:#22d3ee;--ok:#34d399;--err:#f87171}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,'Noto Sans KR',sans-serif}
+    .wrap{max-width:1100px;margin:40px auto;padding:0 16px}
+    .card{background:linear-gradient(180deg,#0b1223,#0b1223 60%,#0c1427);border:1px solid #1f2937;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    h1{font-size:22px;margin:0 0 6px}
+    .sub{color:var(--muted);font-size:13px;margin:0 0 18px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .grow{flex:1}
+    input[type="number"],input[type="text"],input[type="file"]{background:#0b1223;border:1px solid #1f2937;border-radius:10px;color:var(--fg);padding:10px 12px}
+    input[type="number"]{width:140px}
+    input::placeholder{color:#64748b}
+    button{background:#0b1223;border:1px solid #1f2937;border-radius:10px;color:var(--fg);padding:10px 12px;cursor:pointer}
+    button[disabled]{opacity:.6;cursor:not-allowed}
+    .btn-primary{background:linear-gradient(90deg,#0891b2,#22d3ee);border-color:transparent;color:#001b2a}
+    .btn-ghost{background:transparent}
+    .hint{color:var(--muted);font-size:12px}
+    .bar{height:6px;background:#111827;border-radius:999px;overflow:hidden}
+    .bar i{display:block;height:100%;background:linear-gradient(90deg,#22d3ee,#06b6d4);width:0;transition:width .2s}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;background:#0b1223;border:1px solid #1f2937;font-size:12px;color:var(--muted)}
+    .xbtn{background:transparent;border:none;color:var(--muted);font-weight:700;cursor:pointer}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{border-bottom:1px solid #1f2937;padding:8px 10px;text-align:left}
+    thead th{position:sticky;top:0;background:#0b1223;z-index:1}
+    pre{white-space:pre-wrap;background:#0b1223;border:1px solid #1f2937;border-radius:12px;padding:16px;min-height:220px}
+    .grp input{min-width:120px}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #1f2937;color:#cbd5e1;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>FGO 이벤트 주회 시뮬레이터</h1>
+    <div class="sub">브라우저에서 파이썬을 실행해 이벤트 효율을 계산합니다. <span class="pill">CDN</span></div>
+
+    <!-- 부팅 표시 -->
+    <div id="boot" class="card" style="padding:14px; margin:10px 0 18px;">
+      <div class="row">
+        <div class="grow">
+          <div><b>Pyodide 로딩 중…</b> <span class="hint">(인터넷 속도에 따라 10~25초)</span></div>
+          <div class="bar" style="margin-top:10px;"><i id="pbar"></i></div>
+          <div class="hint" id="bootmsg">파이썬 런타임 다운로드 중</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 사과 입력 -->
+    <div class="card" id="applesCard">
+      <div class="row" style="align-items:flex-end">
+        <div><label class="sm">금사과</label><input id="apple-gold" type="number" min="0" step="1" placeholder="0"></div>
+        <div><label class="sm">은사과</label><input id="apple-silver" type="number" min="0" step="1" placeholder="0"></div>
+        <div><label class="sm">청사과</label><input id="apple-blue" type="number" min="0" step="1" placeholder="0"></div>
+        <div><label class="sm">동사과</label><input id="apple-copper" type="number" min="0" step="1" placeholder="0"></div>
+        <div class="hint" style="margin-left:auto">* 수량은 개수, 회복량은 AP입니다.</div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label class="sm">금사과 AP 회복량</label><input id="ap-gold" type="number" min="1" step="1" placeholder="146"></div>
+        <div><label class="sm">은사과 AP 회복량</label><input id="ap-silver" type="number" min="1" step="1" placeholder="73"></div>
+        <div><label class="sm">청사과 AP 회복량</label><input id="ap-blue" type="number" min="1" step="1" placeholder="40"></div>
+        <div><label class="sm">동사과 AP 회복량</label><input id="ap-copper" type="number" min="1" step="1" placeholder="10"></div>
+      </div>
+    </div>
+
+    <!-- 재료 표/검색/업로드 -->
+    <div class="card">
+      <div class="row" id="uploadRow">
+        <input id="search" class="grow" placeholder="재료 이름으로 검색 (예: 단척, 인연, QP)">
+        <div class="hint">테이블 헤더는 한국어 고정 (보유량/목표량). QP는 100만 단위, 인연은 1,000 단위 표기.</div>
+      </div>
+      <div class="row" id="uploadRow2" style="margin-top:8px">
+        <div class="grow hint">기본은 모든 재료 <b>0</b>으로 시작합니다. 필요하면 <b>materials.json</b> 또는 <b>chaldea-userdata.json</b>을 업로드하세요.</div>
+        <label class="sm" style="margin:0">데이터 업로드</label>
+        <input id="matUpload" type="file" accept="application/json" />
+        <span id="fileBadge" class="badge" style="display:none"></span>
+      </div>
+
+      <div class="tblwrap" style="margin-top:10px">
+        <table id="matTable">
+          <thead><tr><th>재료</th><th>레어도</th><th>ap/개</th><th>보유량</th><th>목표량</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 실행 영역 -->
+    <div class="row" style="margin-top:16px">
+      <button id="runBtn" class="btn-primary" disabled>시뮬레이션 실행</button>
+      <button id="resetBtn" class="btn-ghost">입력 초기화</button>
+      <button id="dlBtn" class="btn-ghost" disabled>로그 다운로드</button>
+    </div>
+
+    <pre id="out" class="card" style="margin-top:12px">Pyodide 준비 중…</pre>
+  </div>
+
+  <script>
+    const setP = (pct, msg) => {
+      const el = document.querySelector('#pbar'); if(el) el.style.width = pct + '%';
+      const m  = document.querySelector('#bootmsg'); if(m && msg) m.textContent = msg;
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js" crossorigin="anonymous"></script>
+
+  <script>
+    // ===== 1) JSON 로드 =====
+    async function loadJsonFiles() {
+      const [materials, quests, items] = await Promise.all([
+        fetch('materials.json').then(r=>r.json()),
+        fetch('event_quests.json').then(r=>r.json()),
+        fetch('event_items.json').then(r=>r.json()),
+      ]);
+      return { materials, quests, items };
+    }
+
+    // ===== 2) 표 렌더링 & 편집수집 =====
+    let BASE = { materials:null, quests:null, items:null };
+    let ZERO_BASELINE = null; // 0으로 초기화된 스냅샷
+    const HIDE_BY_KEYWORD = ['사과','퓨어','프리즘','인연','종화','묘목'];
+    const EXACT_HIDE = new Set(['금사과','은사과','청사과','동사과','퓨어프리즘','묘목']);
+    const FORCE_NEED_1M_KEYWORD = ['인연','종화'];
+    const NAME_QP = 'QP';
+    const MILLION = 1_000_000;
+
+    function shouldHide(name){
+      if (EXACT_HIDE.has(name)) return true;
+      return HIDE_BY_KEYWORD.some(k => name.includes(k));
+    }
+    function isForceNeed1M(name){ return FORCE_NEED_1M_KEYWORD.some(k=>name.includes(k)); }
+
+    function labelFor(name){
+      if (name === NAME_QP) return 'QP (100만 단위)';
+      if (name.includes('인연')) return name + ' (1,000 단위)';
+      return name;
+    }
+
+    function makeZeroBaseline(materialsJson){
+      const out = structuredClone(materialsJson);
+      for (const m of (out.materials||[])){
+        m.have = 0; m.need = 0; m.lack = 0;
+      }
+      return out;
+    }
+
+    function applyHiddenItemPolicies(){
+      const rows = BASE.materials.materials || [];
+      for (const m of rows){
+        const name = String(m.item||'');
+        if (shouldHide(name) && !isForceNeed1M(name) && name !== NAME_QP){
+          m.use = 'N';
+        }
+        if (isForceNeed1M(name)){
+          m.need = MILLION;
+          m.lack = Math.max((m.need||0)-(m.have||0),0);
+          m.use = 'Y';
+        }
+      }
+    }
+
+    function renderTable(filter='') {
+      const tbody = document.querySelector('#matTable tbody');
+      tbody.innerHTML = '';
+      const rows = BASE.materials.materials || [];
+      const kw = (filter||'').trim();
+      for (const m of rows) {
+        const rawName = String(m.item||'');
+        if (shouldHide(rawName)) continue;
+        if (kw && !rawName.includes(kw)) continue;
+
+        const isQP = (rawName === NAME_QP);
+        const dispHave = isQP ? Math.floor((m.have||0)/MILLION) : (m.have??0);
+        const dispNeed = isQP ? Math.floor((m.need||0)/MILLION) : (m.need??0);
+
+        const haveAttr = (dispHave && dispHave!==0) ? `value="${dispHave}"` : '';
+        const needAttr = (dispNeed && dispNeed!==0) ? `value="${dispNeed}"` : '';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${labelFor(rawName)}</td>
+          <td>${m.tier??''}</td>
+          <td>${(m.ap_per_item??0).toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+          <td><input type="number" min="0" step="1" placeholder="0" ${haveAttr} data-name="${rawName}" data-field="have" ${isForceNeed1M(rawName)?'disabled':''}></td>
+          <td><input type="number" min="0" step="1" placeholder="0" ${needAttr} data-name="${rawName}" data-field="need" ${isForceNeed1M(rawName)?'disabled':''}></td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function readEditsIntoMaterials() {
+      const map = new Map(BASE.materials.materials.map(m=>[String(m.item||''), m]));
+      const inputs = document.querySelectorAll('input[data-name]');
+      inputs.forEach(inp=>{
+        const name  = inp.getAttribute('data-name');
+        const field = inp.getAttribute('data-field');
+        const row = map.get(name);
+        if (!row) return;
+        let v = Number(inp.value);
+        if (!Number.isFinite(v)) v = 0;
+        if (name === NAME_QP) v = v * MILLION; // QP는 100만 단위 입력
+        row[field] = v;
+      });
+      for (const m of BASE.materials.materials) {
+        const have = Number(m.have||0), need = Number(m.need||0);
+        m.lack = Math.max(need - have, 0);
+      }
+    }
+
+    // ===== 3) Pyodide 부팅 & 파일 쓰기 =====
+    let pyodide = null;
+    async function bootPyodide() {
+      setP(10,'파이썬 런타임 다운로드 중');
+      pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/' });
+      setP(60,'런타임 초기화…');
+      pyodide.FS.mkdirTree('/');
+      setP(80,'Python 스크립트 준비…');
+    }
+
+    async function writeFiles() {
+      pyodide.FS.writeFile('materials.json', JSON.stringify(BASE.materials), { encoding:'utf8' });
+      pyodide.FS.writeFile('event_quests.json', JSON.stringify(BASE.quests), { encoding:'utf8' });
+      pyodide.FS.writeFile('event_items.json', JSON.stringify(BASE.items), { encoding:'utf8' });
+    }
+
+    async function writeCorePyFromFile() {
+      const code = await fetch('calc_event_eff.py').then(r=>r.text());
+      pyodide.FS.writeFile('calc_event_eff.py', code, { encoding:'utf8' });
+    }
+
+    // ===== 4) 실행 =====
+    async function runSimulation() {
+      const out = document.querySelector('#out');
+      out.textContent = '실행 중… (브라우저에서 파이썬 코드가 돌아가는 중)';
+      document.querySelector('#runBtn').disabled = true;
+      try {
+        // 표 입력 반영
+        readEditsIntoMaterials();
+
+        // 사과 수량
+        const apples = {
+          gold:   Number(document.querySelector('#apple-gold').value||0),
+          silver: Number(document.querySelector('#apple-silver').value||0),
+          blue:   Number(document.querySelector('#apple-blue').value||0),
+          copper: Number(document.querySelector('#apple-copper').value||0),
+        };
+        // 사과 AP 회복량 (기본값: 금 146, 은 73, 청 40, 동 10)
+        const appleAp = {
+          gold:   Number(document.querySelector('#ap-gold').value||146),
+          silver: Number(document.querySelector('#ap-silver').value||73),
+          blue:   Number(document.querySelector('#ap-blue').value||40),
+          copper: Number(document.querySelector('#ap-copper').value||10),
+        };
+
+        await writeFiles();
+        await writeCorePyFromFile();
+
+        // 파이썬 실행 스크립트 구성
+        const py = `
+import importlib.util, json, sys, io, os
+sys.stdout = open("run_log.txt","w",encoding="utf-8")
+
+# 모듈 로드
+spec = importlib.util.spec_from_file_location("core","calc_event_eff.py")
+core = importlib.util.module_from_spec(spec); spec.loader.exec_module(core)
+
+# 사과 수량 주입
+try:
+    core.APPLE_COUNTS
+except AttributeError:
+    core.APPLE_COUNTS = {}
+for k,v in ${JSON.stringify({gold:0,silver:0,blue:0,copper:0})}.items():
+    pass
+for k,v in __JS_AP__.items():
+    try:
+        core.APPLE_COUNTS[k] = float(v) if v is not None else 0.0
+    except Exception:
+        core.APPLE_COUNTS[k] = 0.0
+
+# 사과 AP 회복량 주입
+try:
+    core.APPLE_AP_BY_POOL
+except AttributeError:
+    core.APPLE_AP_BY_POOL = {}
+for k,v in ${JSON.stringify({gold:146,silver:73,blue:40,copper:10})}.items():
+    pass
+for k,v in __JS_APPLE_AP__.items():
+    try:
+        core.APPLE_AP_BY_POOL[k] = float(v) if v is not None else core.APPLE_AP_BY_POOL.get(k,0.0)
+    except Exception:
+        pass
+
+core.TABLE_FORMAT = "text"
+core.TABLE_STYLE  = "ascii"
+
+core.main()
+open("run_log.txt","r",encoding="utf-8").read()
+        `.replace('__JS_APPLE_AP__', JSON.stringify(appleAp))
+         .replace('__JS_AP__', JSON.stringify(apples));
+
+        const log = await pyodide.runPythonAsync(py);
+        out.textContent = log || '(로그 비어 있음)';
+        document.querySelector('#dlBtn').disabled = false;
+      } catch (e) {
+        out.textContent = '에러 발생: ' + (e && e.message ? e.message : e);
+      } finally {
+        document.querySelector('#runBtn').disabled = false;
+      }
+    }
+
+    // ===== 5) 업로드 처리 =====
+    function showFileBadge(name, kind, applied){
+      const b = document.querySelector('#fileBadge');
+      if (!b) return;
+      b.style.display = 'inline-flex';
+      b.innerHTML = `📄 ${name} <button type="button" class="xbtn" id="clearFile">×</button>` + (applied? ` <span class="hint">${applied}개 적용</span>` : '');
+      const x = document.querySelector('#clearFile');
+      x.onclick = ()=>{ b.style.display='none'; b.textContent=''; BASE.materials = structuredClone(ZERO_BASELINE); applyHiddenItemPolicies(); renderTable(document.querySelector('#search').value||''); };
+    }
+
+    async function handleUpload(ev){
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      try{
+        const txt = await file.text();
+        const json = JSON.parse(txt);
+
+        // materials.json
+        if (json && Array.isArray(json.materials)) {
+          BASE.materials = json;
+          applyHiddenItemPolicies();
+          renderTable(document.querySelector('#search').value||'');
+          showFileBadge(file.name, 'materials');
+          return;
+        }
+
+        // chaldea-userdata.json
+        if (json && json.users) {
+          const user = Array.isArray(json.users) ? json.users[0] : json.users;
+          const haveMap = (user && user.items) || {};
+          const lackMap = ((user && user.freeLPParams && user.freeLPParams.planItemCounts) || {});
+          let applied = 0;
+          const rows = BASE.materials.materials || [];
+          for (const m of rows) {
+            const id = m.id != null ? String(m.id) : null;
+            if (!id) continue;
+            const have = Number(haveMap[id] || 0);
+            const lack = Number(lackMap[id] || 0);
+            m.have = Number.isFinite(have) ? have : 0;
+            const goal = m.have + (Number.isFinite(lack) ? lack : 0);
+            m.need = goal;
+            m.lack = Math.max(goal - m.have, 0);
+            applied++;
+          }
+          applyHiddenItemPolicies();
+          renderTable(document.querySelector('#search').value||'');
+          showFileBadge(file.name, 'chaldea', applied);
+          return;
+        }
+
+        alert('알 수 없는 JSON 형식입니다. materials.json 또는 chaldea-userdata.json을 올려주세요.');
+      }catch(err){
+        alert('업로드 파싱 실패: ' + err);
+      }finally{
+        ev.target.value = '';
+      }
+    }
+
+    // ===== 6) 부팅 =====
+    (async () => {
+      try{
+        BASE = await loadJsonFiles();
+
+        // 0으로 초기화된 값으로 시작
+        ZERO_BASELINE = makeZeroBaseline(BASE.materials);
+        BASE.materials = structuredClone(ZERO_BASELINE);
+        applyHiddenItemPolicies();
+        renderTable();
+
+        await bootPyodide();
+        document.querySelector('#boot').innerHTML = '<b class="ok">준비 완료!</b> 사과/아이템 수량을 입력하고 <b>시뮬레이션 실행</b>을 누르세요.';
+        document.querySelector('#runBtn').disabled = false;
+
+        // 이벤트
+        document.querySelector('#runBtn').addEventListener('click', runSimulation);
+        document.querySelector('#resetBtn').addEventListener('click', ()=>{
+          BASE.materials = structuredClone(ZERO_BASELINE);
+          applyHiddenItemPolicies();
+          renderTable(document.querySelector('#search').value||'');
+          for (const id of ['apple-gold','apple-silver','apple-blue','apple-copper','ap-gold','ap-silver','ap-blue','ap-copper']){
+            const el = document.getElementById(id); if (el) el.value='';
+          }
+        });
+        document.querySelector('#dlBtn').addEventListener('click', ()=>{
+          const blob = new Blob([document.querySelector('#out').textContent||''], {type:'text/plain;charset=utf-8'});
+          const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'run_log.txt' });
+          a.click(); URL.revokeObjectURL(a.href);
+        });
+        document.querySelector('#search').addEventListener('input', (e)=> renderTable(e.target.value||''));
+        document.querySelector('#matUpload').addEventListener('change', handleUpload);
+      }catch(err){
+        document.querySelector('#boot').innerHTML = '<b class="err">초기화 실패:</b> '+err;
+      }
+    })();
+  </script>
+</body>
+</html>

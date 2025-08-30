@@ -4,51 +4,51 @@
       "item": "금사과",
       "tier": "사과",
       "ap_per_item": null,
-      "have": 237.0,
+      "have": 242.0,
       "need": null,
+      "id": null,
       "lack": null,
-      "use": "Y",
-      "id": null
+      "use": "Y"
     },
     {
       "item": "은사과",
       "tier": "사과",
       "ap_per_item": null,
-      "have": 295.0,
+      "have": 308.0,
       "need": null,
+      "id": null,
       "lack": null,
-      "use": "Y",
-      "id": null
+      "use": "Y"
     },
     {
       "item": "청사과",
       "tier": "사과",
       "ap_per_item": null,
-      "have": 1426.0,
+      "have": 1438.0,
       "need": null,
+      "id": null,
       "lack": null,
-      "use": "Y",
-      "id": null
+      "use": "Y"
     },
     {
       "item": "동사과",
       "tier": "사과",
       "ap_per_item": null,
-      "have": 502.0,
+      "have": 448.0,
       "need": null,
+      "id": null,
       "lack": null,
-      "use": "Y",
-      "id": null
+      "use": "Y"
     },
     {
       "item": "묘목",
       "tier": "사과",
       "ap_per_item": null,
-      "have": 177.0,
+      "have": 165.0,
       "need": null,
+      "id": null,
       "lack": null,
-      "use": "Y",
-      "id": null
+      "use": "Y"
     },
     {
       "item": "퓨어프리즘",
@@ -56,49 +56,49 @@
       "ap_per_item": null,
       "have": 2073.0,
       "need": null,
+      "id": null,
       "lack": null,
-      "use": "Y",
-      "id": null
+      "use": "Y"
     },
     {
       "item": "영웅의증표",
       "tier": "동테",
       "ap_per_item": 18.69,
-      "have": 34.0,
-      "need": 4908.0,
-      "lack": 4874.0,
-      "use": "Y",
-      "id": 6503
+      "have": 26.0,
+      "need": 4932.0,
+      "id": 6503,
+      "lack": 4906.0,
+      "use": "Y"
     },
     {
       "item": "흉골",
       "tier": "동테",
       "ap_per_item": 18.69,
-      "have": 378.0,
-      "need": 3174.0,
-      "lack": 2796.0,
-      "use": "Y",
-      "id": 6516
+      "have": 409.0,
+      "need": 3114.0,
+      "id": 6516,
+      "lack": 2705.0,
+      "use": "Y"
     },
     {
       "item": "용의송곳니",
       "tier": "동테",
       "ap_per_item": 25.09,
-      "have": 1647.0,
-      "need": 1869.0,
-      "lack": 222.0,
-      "use": "Y",
-      "id": 6512
+      "have": 1657.0,
+      "need": 2093.0,
+      "id": 6512,
+      "lack": 436.0,
+      "use": "Y"
     },
     {
       "item": "허영의먼지",
       "tier": "동테",
       "ap_per_item": 28.94,
-      "have": 317.0,
-      "need": 2377.0,
-      "lack": 2060.0,
-      "use": "Y",
-      "id": 6505
+      "have": 285.0,
+      "need": 2513.0,
+      "id": 6505,
+      "lack": 2228.0,
+      "use": "Y"
     },
     {
       "item": "우자의사슬",
@@ -106,9 +106,9 @@
       "ap_per_item": 26.24,
       "have": 1899.0,
       "need": 3644.0,
+      "id": 6522,
       "lack": 1745.0,
-      "use": "Y",
-      "id": 6522
+      "use": "Y"
     },
     {
       "item": "만사의독침",
@@ -116,19 +116,19 @@
       "ap_per_item": 30.39,
       "have": 1151.0,
       "need": 2428.0,
+      "id": 6527,
       "lack": 1277.0,
-      "use": "Y",
-      "id": 6527
+      "use": "Y"
     },
     {
       "item": "마술수액",
       "tier": "동테",
       "ap_per_item": 28.61,
       "have": 2703.0,
-      "need": 7242.0,
-      "lack": 4539.0,
-      "use": "Y",
-      "id": 6530
+      "need": 7268.0,
+      "id": 6530,
+      "lack": 4565.0,
+      "use": "Y"
     },
     {
       "item": "소곡의철향",
@@ -136,199 +136,199 @@
       "ap_per_item": 27.38,
       "have": 1418.0,
       "need": 5582.0,
+      "id": 6533,
       "lack": 4164.0,
-      "use": "Y",
-      "id": 6533
+      "use": "Y"
     },
     {
       "item": "여진화약",
       "tier": "동테",
       "ap_per_item": 27.4,
-      "have": 593.0,
-      "need": 5749.0,
-      "lack": 5156.0,
-      "use": "Y",
-      "id": 6534
+      "have": 608.0,
+      "need": 5737.0,
+      "id": 6534,
+      "lack": 5129.0,
+      "use": "Y"
     },
     {
       "item": "사면의작은종",
       "tier": "동테",
       "ap_per_item": 28.93,
-      "have": 55.0,
-      "need": 6007.0,
-      "lack": 5952.0,
-      "use": "Y",
-      "id": 6549
+      "have": 85.0,
+      "need": 6187.0,
+      "id": 6549,
+      "lack": 6102.0,
+      "use": "Y"
     },
     {
       "item": "황혼의의식검",
       "tier": "동테",
       "ap_per_item": 28.97,
       "have": 71.0,
-      "need": 2912.0,
-      "lack": 2841.0,
-      "use": "Y",
-      "id": 6551
+      "need": 2848.0,
+      "id": 6551,
+      "lack": 2777.0,
+      "use": "Y"
     },
     {
       "item": "잊을수없는재",
       "tier": "동테",
       "ap_per_item": 30.01,
-      "have": 1280.0,
-      "need": 2319.0,
-      "lack": 1039.0,
-      "use": "Y",
-      "id": 6552
+      "have": 1281.0,
+      "need": 2379.0,
+      "id": 6552,
+      "lack": 1098.0,
+      "use": "Y"
     },
     {
       "item": "흑요예인",
       "tier": "동테",
       "ap_per_item": 28.93,
-      "have": 72.0,
-      "need": 2278.0,
-      "lack": 2206.0,
-      "use": "Y",
-      "id": 6554
+      "have": 102.0,
+      "need": 2458.0,
+      "id": 6554,
+      "lack": 2356.0,
+      "use": "Y"
     },
     {
       "item": "광기의잔재",
       "tier": "동테",
       "ap_per_item": 29.81,
       "have": 71.0,
-      "need": 1099.0,
-      "lack": 1028.0,
-      "use": "Y",
-      "id": 6555
+      "need": 1398.0,
+      "id": 6555,
+      "lack": 1327.0,
+      "use": "Y"
     },
     {
       "item": "세계수의씨앗",
       "tier": "은테",
       "ap_per_item": 28.07,
       "have": 970.0,
-      "need": 1779.0,
-      "lack": 809.0,
-      "use": "Y",
-      "id": 6502
+      "need": 1853.0,
+      "id": 6502,
+      "lack": 883.0,
+      "use": "Y"
     },
     {
       "item": "고스트랜턴",
       "tier": "은테",
       "ap_per_item": 45.75,
       "have": 1054.0,
-      "need": 1438.0,
-      "lack": 384.0,
-      "use": "Y",
-      "id": 6508
+      "need": 1437.0,
+      "id": 6508,
+      "lack": 383.0,
+      "use": "Y"
     },
     {
       "item": "팔연쌍정",
       "tier": "은테",
       "ap_per_item": 46.05,
-      "have": 911.0,
-      "need": 1743.0,
-      "lack": 832.0,
-      "use": "Y",
-      "id": 6515
+      "have": 925.0,
+      "need": 1766.0,
+      "id": 6515,
+      "lack": 841.0,
+      "use": "Y"
     },
     {
       "item": "뱀의보옥",
       "tier": "은테",
       "ap_per_item": 37.98,
       "have": 1548.0,
-      "need": 1174.0,
-      "lack": -374.0,
-      "use": "N",
-      "id": 6509
+      "need": 1192.0,
+      "id": 6509,
+      "lack": -356.0,
+      "use": "N"
     },
     {
       "item": "봉황의깃털",
       "tier": "은테",
       "ap_per_item": 52.9,
-      "have": 704.0,
-      "need": 1599.0,
-      "lack": 895.0,
-      "use": "Y",
-      "id": 6501
+      "have": 840.0,
+      "need": 1651.0,
+      "id": 6501,
+      "lack": 811.0,
+      "use": "Y"
     },
     {
       "item": "무간의톱니바퀴",
       "tier": "은테",
       "ap_per_item": 41.26,
-      "have": 511.0,
-      "need": 1627.0,
-      "lack": 1116.0,
-      "use": "Y",
-      "id": 6510
+      "have": 524.0,
+      "need": 1677.0,
+      "id": 6510,
+      "lack": 1153.0,
+      "use": "Y"
     },
     {
       "item": "금단의페이지",
       "tier": "은테",
       "ap_per_item": 31.5,
       "have": 587.0,
-      "need": 1478.0,
-      "lack": 891.0,
-      "use": "Y",
-      "id": 6511
+      "need": 1476.0,
+      "id": 6511,
+      "lack": 889.0,
+      "use": "Y"
     },
     {
       "item": "호문클루스",
       "tier": "은테",
       "ap_per_item": 45.36,
       "have": 239.0,
-      "need": 1227.0,
-      "lack": 988.0,
-      "use": "Y",
-      "id": 6514
+      "need": 1301.0,
+      "id": 6514,
+      "lack": 1062.0,
+      "use": "Y"
     },
     {
       "item": "운제철",
       "tier": "은테",
       "ap_per_item": 43.65,
-      "have": 383.0,
+      "have": 523.0,
       "need": 1357.0,
-      "lack": 974.0,
-      "use": "Y",
-      "id": 6513
+      "id": 6513,
+      "lack": 834.0,
+      "use": "Y"
     },
     {
       "item": "대기사훈장",
       "tier": "은테",
       "ap_per_item": 53.98,
       "have": 969.0,
-      "need": 1933.0,
-      "lack": 964.0,
-      "use": "Y",
-      "id": 6524
+      "need": 2012.0,
+      "id": 6524,
+      "lack": 1043.0,
+      "use": "Y"
     },
     {
       "item": "소라껍데기",
       "tier": "은테",
       "ap_per_item": 31.18,
-      "have": 35.0,
-      "need": 1266.0,
-      "lack": 1231.0,
-      "use": "Y",
-      "id": 6526
+      "have": 43.0,
+      "need": 1401.0,
+      "id": 6526,
+      "lack": 1358.0,
+      "use": "Y"
     },
     {
       "item": "고담곡옥",
       "tier": "은테",
       "ap_per_item": 45.65,
-      "have": 909.0,
-      "need": 2093.0,
-      "lack": 1184.0,
-      "use": "Y",
-      "id": 6532
+      "have": 929.0,
+      "need": 2091.0,
+      "id": 6532,
+      "lack": 1162.0,
+      "use": "Y"
     },
     {
       "item": "영원결빙",
       "tier": "은테",
       "ap_per_item": 31.47,
       "have": 622.0,
-      "need": 4487.0,
-      "lack": 3865.0,
-      "use": "Y",
-      "id": 6535
+      "need": 4712.0,
+      "id": 6535,
+      "lack": 4090.0,
+      "use": "Y"
     },
     {
       "item": "거인의반지",
@@ -336,39 +336,39 @@
       "ap_per_item": 44.94,
       "have": 778.0,
       "need": 2454.0,
+      "id": 6537,
       "lack": 1676.0,
-      "use": "Y",
-      "id": 6537
+      "use": "Y"
     },
     {
       "item": "오로라강",
       "tier": "은테",
       "ap_per_item": 31.21,
-      "have": 766.0,
-      "need": 2861.0,
-      "lack": 2095.0,
-      "use": "Y",
-      "id": 6536
+      "have": 758.0,
+      "need": 2896.0,
+      "id": 6536,
+      "lack": 2138.0,
+      "use": "Y"
     },
     {
       "item": "한고령",
       "tier": "은테",
       "ap_per_item": 31.32,
-      "have": 151.0,
-      "need": 2577.0,
-      "lack": 2426.0,
-      "use": "Y",
-      "id": 6538
+      "have": 158.0,
+      "need": 2576.0,
+      "id": 6538,
+      "lack": 2418.0,
+      "use": "Y"
     },
     {
       "item": "재난의화살촉",
       "tier": "은테",
       "ap_per_item": 45.65,
       "have": 702.0,
-      "need": 2339.0,
-      "lack": 1637.0,
-      "use": "Y",
-      "id": 6541
+      "need": 2457.0,
+      "id": 6541,
+      "lack": 1755.0,
+      "use": "Y"
     },
     {
       "item": "광은의관",
@@ -376,79 +376,79 @@
       "ap_per_item": 31.33,
       "have": 820.0,
       "need": 2635.0,
+      "id": 6543,
       "lack": 1815.0,
-      "use": "Y",
-      "id": 6543
+      "use": "Y"
     },
     {
       "item": "신맥영자",
       "tier": "은테",
       "ap_per_item": 46.26,
       "have": 192.0,
-      "need": 3549.0,
-      "lack": 3357.0,
-      "use": "Y",
-      "id": 6545
+      "need": 3584.0,
+      "id": 6545,
+      "lack": 3392.0,
+      "use": "Y"
     },
     {
       "item": "무지갯빛실타래",
       "tier": "은테",
       "ap_per_item": 45.75,
-      "have": 375.0,
-      "need": 2603.0,
-      "lack": 2228.0,
-      "use": "Y",
-      "id": 6547
+      "have": 395.0,
+      "need": 2692.0,
+      "id": 6547,
+      "lack": 2297.0,
+      "use": "Y"
     },
     {
       "item": "몽환의비늘가루",
       "tier": "은테",
       "ap_per_item": 45.95,
       "have": 320.0,
-      "need": 3153.0,
-      "lack": 2833.0,
-      "use": "Y",
-      "id": 6550
+      "need": 3225.0,
+      "id": 6550,
+      "lack": 2905.0,
+      "use": "Y"
     },
     {
       "item": "태양피",
       "tier": "은테",
       "ap_per_item": 45.55,
-      "have": 72.0,
-      "need": 662.0,
-      "lack": 590.0,
-      "use": "Y",
-      "id": 6553
+      "have": 90.0,
+      "need": 818.0,
+      "id": 6553,
+      "lack": 728.0,
+      "use": "Y"
     },
     {
       "item": "에테르수광체",
       "tier": "은테",
       "ap_per_item": 46.15,
       "have": 54.0,
-      "need": 933.0,
-      "lack": 879.0,
-      "use": "Y",
-      "id": 6556
+      "need": 971.0,
+      "id": 6556,
+      "lack": 917.0,
+      "use": "Y"
     },
     {
       "item": "최후의꽃",
       "tier": "은테",
       "ap_per_item": 46.56,
       "have": 0.0,
-      "need": 503.0,
-      "lack": 503.0,
-      "use": "Y",
-      "id": 6557
+      "need": 615.0,
+      "id": 6557,
+      "lack": 615.0,
+      "use": "Y"
     },
     {
       "item": "유니버셜큐브",
       "tier": "은테",
       "ap_per_item": 31.94,
       "have": 0.0,
-      "need": 358.0,
-      "lack": 358.0,
-      "use": "Y",
-      "id": 6559
+      "need": 355.0,
+      "id": 6559,
+      "lack": 355.0,
+      "use": "Y"
     },
     {
       "item": "신체의렌즈",
@@ -456,19 +456,19 @@
       "ap_per_item": 46.77,
       "have": 0.0,
       "need": 393.0,
+      "id": 6561,
       "lack": 393.0,
-      "use": "Y",
-      "id": 6561
+      "use": "Y"
     },
     {
       "item": "혼돈의발톱",
       "tier": "금테",
       "ap_per_item": 92.78,
-      "have": 536.0,
-      "need": 1349.0,
-      "lack": 813.0,
-      "use": "Y",
-      "id": 6507
+      "have": 539.0,
+      "need": 1361.0,
+      "id": 6507,
+      "lack": 822.0,
+      "use": "Y"
     },
     {
       "item": "만신의심장",
@@ -476,29 +476,29 @@
       "ap_per_item": 152.67,
       "have": 492.0,
       "need": 637.0,
+      "id": 6517,
       "lack": 145.0,
-      "use": "Y",
-      "id": 6517
+      "use": "Y"
     },
     {
       "item": "용의역린",
       "tier": "금테",
       "ap_per_item": 35.53,
       "have": 522.0,
-      "need": 820.0,
-      "lack": 298.0,
-      "use": "Y",
-      "id": 6506
+      "need": 829.0,
+      "id": 6506,
+      "lack": 307.0,
+      "use": "Y"
     },
     {
       "item": "정령근",
       "tier": "금테",
       "ap_per_item": 153.28,
-      "have": 404.0,
-      "need": 1328.0,
-      "lack": 924.0,
-      "use": "Y",
-      "id": 6518
+      "have": 414.0,
+      "need": 1308.0,
+      "id": 6518,
+      "lack": 894.0,
+      "use": "Y"
     },
     {
       "item": "전마의유각",
@@ -506,29 +506,29 @@
       "ap_per_item": 86.96,
       "have": 202.0,
       "need": 1004.0,
+      "id": 6519,
       "lack": 802.0,
-      "use": "Y",
-      "id": 6519
+      "use": "Y"
     },
     {
       "item": "혈루석",
       "tier": "금테",
       "ap_per_item": 108.81,
-      "have": 415.0,
-      "need": 1106.0,
-      "lack": 691.0,
-      "use": "Y",
-      "id": 6520
+      "have": 407.0,
+      "need": 1135.0,
+      "id": 6520,
+      "lack": 728.0,
+      "use": "Y"
     },
     {
       "item": "흑수지",
       "tier": "금테",
       "ap_per_item": 92.51,
-      "have": 515.0,
+      "have": 518.0,
       "need": 1315.0,
-      "lack": 800.0,
-      "use": "Y",
-      "id": 6521
+      "id": 6521,
+      "lack": 797.0,
+      "use": "Y"
     },
     {
       "item": "봉마의램프",
@@ -536,159 +536,159 @@
       "ap_per_item": 40.0,
       "have": 102.0,
       "need": 1447.0,
+      "id": 6523,
       "lack": 1345.0,
-      "use": "Y",
-      "id": 6523
+      "use": "Y"
     },
     {
       "item": "스카라베",
       "tier": "금테",
       "ap_per_item": 154.41,
-      "have": 234.0,
+      "have": 235.0,
       "need": 1269.0,
-      "lack": 1035.0,
-      "use": "Y",
-      "id": 6525
+      "id": 6525,
+      "lack": 1034.0,
+      "use": "Y"
     },
     {
       "item": "원초의산모",
       "tier": "금테",
       "ap_per_item": 103.96,
-      "have": 443.0,
-      "need": 1815.0,
-      "lack": 1372.0,
-      "use": "Y",
-      "id": 6528
+      "have": 463.0,
+      "need": 1811.0,
+      "id": 6528,
+      "lack": 1348.0,
+      "use": "Y"
     },
     {
       "item": "주수담석",
       "tier": "금테",
       "ap_per_item": 153.28,
       "have": 429.0,
-      "need": 799.0,
-      "lack": 370.0,
-      "use": "Y",
-      "id": 6529
+      "need": 873.0,
+      "id": 6529,
+      "lack": 444.0,
+      "use": "Y"
     },
     {
       "item": "기기신주",
       "tier": "금테",
       "ap_per_item": 141.89,
-      "have": 651.0,
+      "have": 654.0,
       "need": 1242.0,
-      "lack": 591.0,
-      "use": "Y",
-      "id": 6531
+      "id": 6531,
+      "lack": 588.0,
+      "use": "Y"
     },
     {
       "item": "효광노심",
       "tier": "금테",
       "ap_per_item": 92.51,
-      "have": 433.0,
-      "need": 2175.0,
-      "lack": 1742.0,
-      "use": "Y",
-      "id": 6539
+      "have": 425.0,
+      "need": 2235.0,
+      "id": 6539,
+      "lack": 1810.0,
+      "use": "Y"
     },
     {
       "item": "구십구경",
       "tier": "금테",
       "ap_per_item": 159.09,
-      "have": 565.0,
-      "need": 1764.0,
-      "lack": 1199.0,
-      "use": "Y",
-      "id": 6540
+      "have": 575.0,
+      "need": 1799.0,
+      "id": 6540,
+      "lack": 1224.0,
+      "use": "Y"
     },
     {
       "item": "진리의알",
       "tier": "금테",
       "ap_per_item": 159.09,
-      "have": 130.0,
-      "need": 1950.0,
-      "lack": 1820.0,
-      "use": "Y",
-      "id": 6542
+      "have": 133.0,
+      "need": 1973.0,
+      "id": 6542,
+      "lack": 1840.0,
+      "use": "Y"
     },
     {
       "item": "황성의조각",
       "tier": "금테",
       "ap_per_item": 147.89,
-      "have": 421.0,
-      "need": 2008.0,
-      "lack": 1587.0,
-      "use": "Y",
-      "id": 6544
+      "have": 428.0,
+      "need": 2007.0,
+      "id": 6544,
+      "lack": 1579.0,
+      "use": "Y"
     },
     {
       "item": "유구의열매",
       "tier": "금테",
       "ap_per_item": 30.4,
       "have": 245.0,
-      "need": 2295.0,
-      "lack": 2050.0,
-      "use": "Y",
-      "id": 6946
+      "need": 2315.0,
+      "id": 6946,
+      "lack": 2070.0,
+      "use": "Y"
     },
     {
       "item": "도깨비불꽈리",
       "tier": "금테",
       "ap_per_item": 155.56,
-      "have": 499.0,
-      "need": 1581.0,
-      "lack": 1082.0,
-      "use": "Y",
-      "id": 6548
+      "have": 519.0,
+      "need": 1616.0,
+      "id": 6548,
+      "lack": 1097.0,
+      "use": "Y"
     },
     {
       "item": "황금가마",
       "tier": "금테",
       "ap_per_item": 123.6,
       "have": 0.0,
-      "need": 207.0,
-      "lack": 207.0,
-      "use": "Y",
-      "id": 6558
+      "need": 237.0,
+      "id": 6558,
+      "lack": 237.0,
+      "use": "Y"
     },
     {
       "item": "월광핵",
       "tier": "금테",
       "ap_per_item": 35.48,
       "have": 0.0,
-      "need": 130.0,
-      "lack": 130.0,
-      "use": "Y",
-      "id": 6560
+      "need": 157.0,
+      "id": 6560,
+      "lack": 157.0,
+      "use": "Y"
     },
     {
       "item": "운명의신성수",
       "tier": "금테",
       "ap_per_item": 131.74,
       "have": 0.0,
-      "need": 79.0,
-      "lack": 79.0,
-      "use": "Y",
-      "id": 6562
+      "need": 103.0,
+      "id": 6562,
+      "lack": 103.0,
+      "use": "Y"
     },
     {
       "item": "유령상",
       "tier": "금테",
       "ap_per_item": 15.96,
       "have": 0.0,
-      "need": 108.0,
-      "lack": 108.0,
-      "use": "Y",
-      "id": 6563
+      "need": 153.0,
+      "id": 6563,
+      "lack": 153.0,
+      "use": "Y"
     },
     {
       "item": "QP",
       "tier": "QP",
-      "ap_per_item": 8.19672131147541,
-      "have": 1528.0,
-      "need": 47190.0,
-      "lack": 45662.0,
-      "use": "Y",
-      "id": 1
+      "ap_per_item": 8.2,
+      "have": 1810.0,
+      "need": 48771.0,
+      "id": 1,
+      "lack": 46961.0,
+      "use": "Y"
     },
     {
       "item": "인연",

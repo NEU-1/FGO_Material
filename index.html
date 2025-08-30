@@ -48,7 +48,7 @@
             <div class="bar" style="margin-top:10px;"><i id="pbar"></i></div>
             <div class="hint" id="bootmsg">파이썬 런타임 다운로드 중</div>
           </div>
-          <div class="row" style="gap:8px"><button id="retryBoot" class="ghost">재시도</button><span class="badge" id="cdnInfo">CDN</span></div>
+          <span class="badge">CDN</span>
         </div>
       </div>
 
@@ -228,53 +228,9 @@ const map = new Map((BASE.materials.materials||[]).map(m=>[String(m.item||''), m
 
     // ===== 3) Pyodide 부팅 & 파일 쓰기 =====
     let pyodide = null;
-    
-async function bootPyodide() {
-  const msg = (t)=>{ const m=document.querySelector('#bootmsg'); if(m && t) m.textContent=t; };
-  const bar = (p)=>{ const el=document.querySelector('#pbar'); if(el) el.style.width = p + '%'; };
-  const badge = document.querySelector('#cdnInfo');
-  const withTimeout = (p, ms)=>Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout '+ms+'ms')), ms))]);
-  const ensureScript = async (src)=>{
-    if (typeof loadPyodide === 'function') return;
-    await new Promise((resolve, reject)=>{
-      const s = document.createElement('script');
-      s.src = src; s.crossOrigin='anonymous';
-      s.onload = resolve;
-      s.onerror = ()=>reject(new Error('script load failed: '+src));
-      document.head.appendChild(s);
-    });
-  };
-  const tries = [
-    {label:'jsDelivr(full)', url:'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/', js:'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js'},
-    {label:'jsDelivr(npm)',  url:'https://cdn.jsdelivr.net/npm/pyodide@0.26.2/',    js:'https://cdn.jsdelivr.net/npm/pyodide@0.26.2/pyodide.js'},
-    {label:'unpkg',          url:'https://unpkg.com/pyodide@0.26.2/',               js:'https://unpkg.com/pyodide@0.26.2/pyodide.js'},
-  ];
-  let lastErr = null;
-  for (const t of tries){
-    try{
-      if (badge){ badge.textContent = t.label; }
-      msg('Pyodide 라이브러리 불러오는 중… ('+t.label+')'); bar(10);
-      if (typeof loadPyodide !== 'function'){ await ensureScript(t.js); }
-      msg('Pyodide 초기화…'); bar(30);
-      pyodide = await withTimeout(loadPyodide({ indexURL: t.url }), 25000);
-      window.PYODIDE_INDEX_URL = t.url;
-      msg('가상 파일시스템 준비…'); bar(60);
-      pyodide.FS.mkdirTree('/');
-      bar(80);
-      return true; // success
-    }catch(e){
-      console.warn('Pyodide load failed for', t, e);
-      lastErr = e;
-      // continue to next try
-    }
-  }
-  const online = navigator.onLine ? '온라인' : '오프라인';
-  const hint = 'CDN 차단/지연일 수 있습니다. 다른 네트워크나 프록시 제외 후 재시도해 주세요.';
-  const boot = document.querySelector('#boot');
-  if (boot) boot.innerHTML = '<b class="err">초기화 실패:</b> '+(lastErr||'unknown')+'<div class="hint">상태: '+online+'. '+hint+'</div>';
-  throw lastErr || new Error('All CDN attempts failed');
-}
-);
+    async function bootPyodide() {
+      setP(10,'파이썬 런타임 다운로드 중');
+      pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/' });
       setP(60,'런타임 초기화…');
       pyodide.FS.mkdirTree('/');
       setP(80,'Python 스크립트 준비…');
@@ -450,17 +406,6 @@ const file = ev.target.files && ev.target.files[0];
           a.click(); URL.revokeObjectURL(a.href);
         });
         document.querySelector('#runBtn').addEventListener('click', runSimulation);
-        const rb = document.querySelector('#retryBoot'); if (rb) rb.addEventListener('click', async ()=>{
-          const boot = document.querySelector('#boot');
-          if (boot && boot.querySelector('.err')){
-            boot.innerHTML = '<div class="row"><div class="grow">'+
-              '<div><span class="loader"></span><b>Pyodide 로딩 중…</b> (인터넷 속도에 따라 10~25초)</div>'+
-              '<div class="bar" style="margin-top:10px;"><i id="pbar"></i></div>'+
-              '<div class="hint" id="bootmsg">파이썬 런타임 다운로드 중</div>'+
-              '</div><div class="row" style="gap:8px"><button id="retryBoot" class="ghost">재시도</button><span class="badge" id="cdnInfo">CDN</span></div></div>';
-          }
-          try{ await bootPyodide(); }catch(_e){}
-        });
         document.querySelector('#resetBtn').addEventListener('click', resetInputs);
         document.querySelector('#search').addEventListener('input', (e)=> renderTable(e.target.value||''));
         document.querySelector('#matUpload').addEventListener('change', handleUpload);

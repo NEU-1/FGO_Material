@@ -2,43 +2,52 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <title>FGO 이벤트 주회 시뮬레이터</title>
+  <title>FGO 이벤트 주회 시뮬레이터 – 웹 간편판 (CDN)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <style>
     :root{--bg:#0f172a;--card:#0b1223;--muted:#94a3b8;--fg:#e5e7eb;--acc:#22d3ee;--ok:#34d399;--err:#f87171}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,'Noto Sans KR',sans-serif}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,'Noto Sans KR',sans-serif}
     .wrap{max-width:1100px;margin:40px auto;padding:0 16px}
-    .card{background:linear-gradient(180deg,#0b1223,#0b1223 60%,#0b1223aa);border:1px solid #1f2937;border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .card{background:linear-gradient(180deg,#0b1223,#0b1223 60%,#0b1223);border:1px solid #0c1a2e;border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
     h1{font-size:22px;margin:0 0 10px}.sub{color:var(--muted);font-size:14px;margin-bottom:16px}
     .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.grow{flex:1}
-    input[type="number"],input[type="text"],input[type="file"]{background:#0b1223;border:1px solid #1f2937;border-radius:10px;color:var(--fg);padding:10px 12px}
-    input[type="number"]{width:140px}
-    label.sm{font-size:13px;color:var(--muted);display:block;margin-bottom:4px}
-    .grp{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 12px}
-    button{background:var(--acc);color:#001018;border:0;border-radius:12px;padding:10px 16px;font-weight:700;cursor:pointer}
-    button.ghost{background:#0b1223;color:var(--fg);border:1px solid #1f2937}
-    button:disabled{opacity:.6;cursor:not-allowed}.hint{color:var(--muted);font-size:13px}
-    .tblwrap{max-height:420px;overflow:auto;border:1px solid #1f2937;border-radius:12px}
-    table{border-collapse:collapse;width:100%;font-size:14px}
-    th,td{border-bottom:1px solid #1f2937;padding:8px 10px;text-align:left}
-    thead th{position:sticky;top:0;background:#0b1223;z-index:1}
-    pre{white-space:pre-wrap;background:#0b1223;border:1px solid #1f2937;border-radius:12px;padding:16px;min-height:220px}
-    .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#0b1223;border:1px solid #1f2937;font-size:12px;color:var(--muted)}
-    .ok{color:var(--ok)}.err{color:var(--err)}
-    .loader{display:inline-block;width:16px;height:16px;border:3px solid #1f2937;border-top-color:var(--acc);border-radius:50%;animation:spin 1s linear infinite;vertical-align:-3px;margin-right:6px}
+    input[type="number"],input[type="text"],input[type="file"]{background:#0a1326;border:1px solid #10213f;border-radius:10px;color:var(--fg);padding:10px 12px;outline:none}
+    input[type="number"]::placeholder,input[type="text"]::placeholder{color:#6b7280}
+    label.sm{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+    .toolbar{display:flex;gap:10px;align-items:center}
+    .badge{display:inline-flex;align-items:center;gap:6px;background:#0a1a2f;border:1px solid #11305a;border-radius:100px;padding:4px 10px}
+    .badge .x{cursor:pointer;opacity:.8}
+    .right{margin-left:auto}
+    .hint{color:var(--muted)}
+    button{background:var(--acc);border:0;color:#001014;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:600}
+    button.ghost{background:#0a1326;color:var(--fg);border:1px solid #11305a}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .loader{display:inline-block;width:16px;height:16px;border:2px solid #0a1326;border-top-color:var(--acc);border-radius:50%;animation:spin 1s linear infinite;margin-right:8px}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .bar{height:8px;border:1px solid #1f2937;border-radius:999px;overflow:hidden}.bar>i{display:block;height:100%;background:linear-gradient(90deg,#0891b2,#22d3ee);width:0%}
-    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}.right{margin-left:auto}
+    .grp{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+    .tblwrap{overflow:auto;border-radius:12px;border:1px solid #0c1a2e}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    thead th{position:sticky;top:0;background:#0b1326;border-bottom:1px solid #0c1a2e;padding:10px;text-align:left}
+    tbody td{border-bottom:1px solid #0c1a2e;padding:8px}
+    pre{white-space:pre-wrap;background:#0a1326;border:1px solid #0c1a2e;border-radius:12px;padding:12px}
+    .bar{height:6px;background:#081126;border-radius:6px;overflow:hidden}
+    .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#164e63,#0891b2)}
   </style>
+  <script>
+    const setP = (pct, msg) => {
+      const el = document.querySelector('#pbar'); if(el) el.style.width = pct + '%';
+      const m  = document.querySelector('#bootmsg'); if(m && msg) m.textContent = msg;
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
       <h1>FGO 이벤트 주회 시뮬레이터</h1>
-      <div class="sub">
-        첫 로딩은 브라우저가 파이썬을 준비하느라 <b>10~25초</b> 걸릴 수 있어요. 준비되면 <b>사과 수량</b>과 <b>아이템 수량의 현재/목표</b>를 입력하고 <b>실행</b>을 누르세요.
-      </div>
+      <div class="sub">브라우저에서 파이썬(Pyodide)으로 계산합니다. 네트워크 품질에 따라 초기 로딩이 10~25초 걸릴 수 있어요.</div>
 
       <!-- 부팅 표시 -->
       <div id="boot" class="card" style="padding:14px; margin:10px 0 18px;">
@@ -52,20 +61,17 @@
         </div>
       </div>
 
-      <!-- 사과 입력 -->
-      <div class="grp">
-        <div><label class="sm">금사과</label><input id="apple-gold" type="number" min="0" step="1" value="" placeholder="0"></div>
-        <div><label class="sm">은사과</label><input id="apple-silver" type="number" min="0" step="1" value="" placeholder="0"></div>
-        <div><label class="sm">청사과</label><input id="apple-blue" type="number" min="0" step="1" value="" placeholder="0"></div>
-        <div><label class="sm">동사과</label><input id="apple-copper" type="number" min="0" step="1" value="" placeholder="0"></div>
-      
-      <!-- 사과 AP 회복량 입력 -->
-      <div class="grp">
-        <div><label class="sm">금사과 회복량(AP)</label><input id="aprec-gold" type="number" min="0" step="1" value="" placeholder="0"></div>
-        <div><label class="sm">은사과 회복량(AP)</label><input id="aprec-silver" type="number" min="0" step="1" value="" placeholder="0"></div>
-        <div class="hint" style="align-self:flex-end;margin-left:6px">미기입 시 기본값(146/73)이 사용됩니다</div>
+      <!-- 사과 입력 (가로 정렬) -->
+      <div class="grp" style="grid-template-columns:repeat(8,minmax(0,1fr))">
+        <div><label class="sm">금사과</label><input id="apple-gold" type="number" min="0" step="1" placeholder="0"></div>
+        <div><label class="sm">은사과</label><input id="apple-silver" type="number" min="0" step="1" placeholder="0"></div>
+        <div><label class="sm">청사과</label><input id="apple-blue" type="number" min="0" step="1" placeholder="0"></div>
+        <div><label class="sm">동사과</label><input id="apple-copper" type="number" min="0" step="1" placeholder="0"></div>
+        <div><label class="sm">금사과 AP 회복량</label><input id="ap-gold" type="number" min="1" step="1" placeholder="146"></div>
+        <div><label class="sm">은사과 AP 회복량</label><input id="ap-silver" type="number" min="1" step="1" placeholder="73"></div>
+        <div class="grow"></div>
+        <div class="grow"></div>
       </div>
-    </div>
 
       <!-- 재료 표/검색/업로드 -->
       <div class="row" style="margin:12px 0">
@@ -75,19 +81,32 @@
             <span class="right badge">AP/판=40 · text+ascii</span>
           </div>
 
-          <div class="toolbar">
-            <div class="grow hint">기본은 모든 재료 <b>0</b>으로 시작합니다. 필요하면 아래에서 <b>materials.json 업로드</b>로 교체하세요.</div>
-            <label class="sm" style="margin:0">materials.json 업로드</label>
-            <input id="matUpload" type="file" accept="application/json" /> <span id="matUploadName" class="badge" title="업로드 인식된 파일명" style="display:none;margin-left:8px"></span>
+          <div class="toolbar" style="margin-top:8px">
+            <div class="grow hint">기본은 모든 재료 <b>0</b>으로 시작합니다. 필요하면 아래에서 JSON 업로드로 교체하세요.</div>
+            <div class="badge" id="badge-area">
+              <!-- 업로드된 파일 뱃지 표시 -->
+            </div>
           </div>
 
-          <div class="tblwrap">
+          <div class="toolbar" style="margin-top:8px">
+            <div>
+              <label class="sm" style="margin:0">materials.json 업로드</label>
+              <input id="matUpload" type="file" accept="application/json" />
+            </div>
+            <div>
+              <label class="sm" style="margin:0">기타 JSON 업로드 (chaldea, event_* 등)</label>
+              <input id="anyUpload" type="file" accept="application/json" multiple />
+            </div>
+          </div>
+
+          <div class="tblwrap" style="margin-top:10px">
             <table id="matTable">
               <thead><tr><th>재료</th><th>레어도</th><th>ap/개</th><th>보유량</th><th>목표량</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
-          <div class="toolbar">
+
+          <div class="toolbar" style="margin-top:10px">
             <button id="runBtn" disabled>시뮬레이션 실행</button>
             <button id="resetBtn" class="ghost" disabled>입력값 초기화</button>
             <button id="dlBtn" class="ghost right" disabled>로그 다운로드</button>
@@ -100,15 +119,7 @@
   </div>
 
   <script>
-    const setP = (pct, msg) => {
-      const el = document.querySelector('#pbar'); if(el) el.style.width = pct + '%';
-      const m  = document.querySelector('#bootmsg'); if(m && msg) m.textContent = msg;
-    };
-  </script>
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
-
-  <script>
-    // ===== 1) JSON 로드 =====
+    // ===== 1) JSON 로드 (기본값) =====
     async function loadJsonFiles() {
       const [materials, quests, items] = await Promise.all([
         fetch('materials.json').then(r=>r.json()),
@@ -118,115 +129,127 @@
       return { materials, quests, items };
     }
 
-    // ===== 2) 재료 표 렌더링(사과/특정 항목 숨김 & QP 100만 단위 표기) =====
+    // ===== 2) 렌더/정책 =====
     let BASE = { materials:null, quests:null, items:null };
+    let DEFAULT_BASE = null;
+    let LOADED_APPLES = { gold:null, silver:null, blue:null, copper:null }; // 파일에서 읽은 사과 기본값(사용자 미수정 시 사용)
+    const uploaded = {}; // {materials:{name}, quests:{name}, items:{name}, chaldea:{name}}
 
     const HIDE_BY_KEYWORD = ['사과','퓨어','프리즘','인연','종화','묘목']; // 포함시 숨김
     const EXACT_HIDE = new Set(['금사과','은사과','청사과','동사과','퓨어프리즘','묘목']); // 정확히 숨김
-    const FORCE_NEED_1M_KEYWORD = ['인연','종화']; // 목표 100만 강제
     const NAME_QP = 'QP';
     const MILLION = 1_000_000;
 
-    // 업로드/리셋 기준 스냅샷(Reset 버튼 동작용)
-    let RESET_SNAPSHOT = null;
-
-    function shouldHide(name){
-      if (EXACT_HIDE.has(name)) return true;
-      return HIDE_BY_KEYWORD.some(k => name.includes(k));
-    }
-    function isForceNeed1M(name){
-      return FORCE_NEED_1M_KEYWORD.some(k => name.includes(k));
-    }
     function labelFor(name){
       if (name === NAME_QP) return 'QP(100만 단위)';
       return name;
     }
 
-    // 업로드하지 않은 기본 시작: 모든 have/need 0으로 초기화
-    function makeZeroBaseline(materialsJson){
-const out = structuredClone(materialsJson);
-  for (const m of (out.materials||[])){
-    m['보유량'] = 0;
-    m['목표량'] = 0;
-    delete m.have; delete m.need; delete m.lack; delete m.use;
-  }
-  return out;
-    }
-
-    // 숨김/강제 정책 적용
     function applyHiddenItemPolicies(){
-const rows = BASE.materials.materials || [];
-  for (const m of rows){
-    const name = String(m.item||'');
-    if (isForceNeed1M(name)){
-      const hv = Number(('보유량' in m ? m['보유량'] : (m.have ?? 0)) || 0);
-      m['보유량'] = hv;
-      m['목표량'] = MILLION;
-    }
-    delete m.have; delete m.need; delete m.lack; delete m.use;
-  }
+      const rows = BASE.materials.materials || [];
+      for (const m of rows){
+        const name = String(m.item||'');
+        // 숨김 처리
+        if (EXACT_HIDE.has(name) || HIDE_BY_KEYWORD.some(k=>name.includes(k))){
+          m.use = 'N';
+        }
+        // (기존 요청) 인연/종화는 목표 100만 고정 — 필요 시 조정 가능
+        if (['인연','종화'].some(k=>name.includes(k))){
+          m.need = MILLION;
+          m.lack = Math.max((m.need||0)-(m.have||0),0);
+          m.use = 'Y';
+        }
+      }
     }
 
     function renderTable(filter='') {
-const tbody = document.querySelector('#matTable tbody');
-  tbody.innerHTML = '';
-  const rows = BASE.materials.materials || [];
-  const kw = (filter||'').trim();
-  for (const m of rows) {
-    const rawName = String(m.item||'');
-    if (shouldHide(rawName)) continue;
-    if (kw && !rawName.includes(kw)) continue;
+      const tbody = document.querySelector('#matTable tbody');
+      tbody.innerHTML = '';
+      const rows = BASE.materials.materials || [];
+      const kw = (filter||'').trim();
+      for (const m of rows) {
+        const rawName = String(m.item||'');
+        if (EXACT_HIDE.has(rawName) || HIDE_BY_KEYWORD.some(k=>rawName.includes(k))) continue;
+        if (kw && !rawName.includes(kw)) continue;
 
-    const isQP = (rawName === NAME_QP);
-    const haveRaw = ('보유량' in m) ? m['보유량'] : (m.have ?? 0);
-    const needRaw = ('목표량' in m) ? m['목표량'] : (m.need ?? 0);
-    const dispHave = isQP ? Math.floor(Number(haveRaw||0)/MILLION) : Number(haveRaw||0);
-    const dispNeed = isQP ? Math.floor(Number(needRaw||0)/MILLION) : Number(needRaw||0);
+        const isQP = (rawName === NAME_QP);
+        const dispHave = isQP ? Math.floor((m.have||0)/MILLION) : (m.have??0);
+        const dispNeed = isQP ? Math.floor((m.need||0)/MILLION) : (m.need??0);
 
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${labelFor(rawName)}</td>
-      <td>${m.tier??''}</td>
-      <td>${(m.ap_per_item??0).toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-      <td><input type="number" step="1" value="${dispHave===0?'':dispHave}" placeholder="0" data-name="${rawName}" data-field="보유량" ${isForceNeed1M(rawName)?'disabled':''}></td>
-      <td><input type="number" step="1" value="${dispNeed===0?'':dispNeed}" placeholder="0" data-name="${rawName}" data-field="목표량" ${isForceNeed1M(rawName)?'disabled':''}></td>
-    `;
-    tbody.appendChild(tr);
-  }
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${labelFor(rawName)}</td>
+          <td>${m.tier??''}</td>
+          <td>${(m.ap_per_item??0).toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+          <td><input type="number" step="1" placeholder="${dispHave||0}" value="" data-name="${rawName}" data-field="have" ${['인연','종화'].some(k=>rawName.includes(k))?'disabled':''}></td>
+          <td><input type="number" step="1" placeholder="${dispNeed||0}" value="" data-name="${rawName}" data-field="need" ${['인연','종화'].some(k=>rawName.includes(k))?'disabled':''}></td>
+        `;
+        tbody.appendChild(tr);
+      }
     }
 
     function readEditsIntoMaterials() {
-const map = new Map((BASE.materials.materials||[]).map(m=>[String(m.item||''), m]));
-  const inputs = document.querySelectorAll('input[data-name]');
-  inputs.forEach(inp=>{
-    const name  = inp.getAttribute('data-name');
-    const field = inp.getAttribute('data-field'); // '보유량' | '목표량'
-    const row = map.get(name);
-    if (!row) return;
-    let v = Number(inp.value);
-    if (!Number.isFinite(v)) v = 0;
-    if (name === NAME_QP) v = v * MILLION;
-    row[field] = v;
-    delete row.have; delete row.need; delete row.lack; delete row.use;
-  });
+      const map = new Map((BASE.materials.materials||[]).map(m=>[String(m.item||''), m]));
+      const inputs = document.querySelectorAll('input[data-name]');
+      inputs.forEach(inp=>{
+        const name  = inp.getAttribute('data-name');
+        const field = inp.getAttribute('data-field');
+        const row = map.get(name);
+        if (!row) return;
+        const raw = (inp.value??'').toString().trim();
+        if (raw==='') return; // 빈 입력이면 기존값 유지 (업로드/기본값 사용)
+        let v = Number(raw);
+        if (!Number.isFinite(v)) v = 0;
+
+        if (name === NAME_QP) v = v * MILLION; // QP 100만 단위 입력
+
+        row[field] = v;
+        const have = Number(row.have||0);
+        const need = Number(row.need||0);
+        row.lack = Math.max(need - have, 0);
+      });
     }
 
     function resetInputs() {
-      if (RESET_SNAPSHOT){
-        BASE.materials = structuredClone(RESET_SNAPSHOT);
+      // 테이블 값은 리셋 스냅샷 기준으로 복원
+      if (window.RESET_SNAPSHOT){
+        BASE.materials = structuredClone(window.RESET_SNAPSHOT);
       }
       applyHiddenItemPolicies();
       renderTable(document.querySelector('#search').value||'');
-      
-      const _ag = document.querySelector('#aprec-gold'); if(_ag) _ag.value='';
-      const _as = document.querySelector('#aprec-silver'); if(_as) _as.value='';// 사과 입력은 0으로 초기화
-      document.querySelector('#apple-gold').value   = '';
-      document.querySelector('#apple-silver').value = '';
-      document.querySelector('#apple-blue').value   = '';
-      document.querySelector('#apple-copper').value = '';
+
+      // 사과 입력 및 AP 회복량은 비우고 placeholder 유지
+      for (const id of ['apple-gold','apple-silver','apple-blue','apple-copper','ap-gold','ap-silver']){
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      }
     }
 
-    // ===== 3) Pyodide 부팅 & 파일 쓰기 =====
+    function refreshBadges(){
+      const box = document.getElementById('badge-area');
+      box.innerHTML = '';
+      const entries = [
+        uploaded.materials && ['materials', uploaded.materials.name],
+        uploaded.items     && ['event_items', uploaded.items.name],
+        uploaded.quests    && ['event_quests', uploaded.quests.name],
+        uploaded.chaldea   && ['chaldea', uploaded.chaldea.name],
+      ].filter(Boolean);
+      for (const [kind, name] of entries){
+        const b = document.createElement('span');
+        b.className='badge';
+        b.innerHTML = `<b>${kind}</b>: ${name} <span class="x">✕</span>`;
+        b.querySelector('.x').addEventListener('click', ()=>{
+          if (kind==='materials'){ BASE.materials = structuredClone(DEFAULT_BASE.materials); delete uploaded.materials; window.RESET_SNAPSHOT = structuredClone(BASE.materials); renderTable(); }
+          if (kind==='event_items'){ BASE.items = structuredClone(DEFAULT_BASE.items); delete uploaded.items; }
+          if (kind==='event_quests'){ BASE.quests = structuredClone(DEFAULT_BASE.quests); delete uploaded.quests; }
+          if (kind==='chaldea'){ delete uploaded.chaldea; LOADED_APPLES = {gold:null,silver:null,blue:null,copper:null}; }
+          refreshBadges();
+        });
+        box.appendChild(b);
+      }
+    }
+
+    // ===== 3) Pyodide =====
     let pyodide = null;
     async function bootPyodide() {
       setP(10,'파이썬 런타임 다운로드 중');
@@ -237,27 +260,12 @@ const map = new Map((BASE.materials.materials||[]).map(m=>[String(m.item||''), m
     }
 
     async function writeFiles() {
-const rows = BASE.materials.materials || [];
-  const outRows = [];
-  for (const m of rows){
-    const name = String(m.item||'');
-    const forceKeep = (isForceNeed1M(name) || name === NAME_QP);
-    if (shouldHide(name) && !forceKeep) continue;
-
-    const v = {...m};
-    if (!('보유량' in v)) v['보유량'] = Number(v.have ?? 0);
-    if (!('목표량' in v)) v['목표량'] = Number(v.need ?? 0);
-    if (isForceNeed1M(name)) v['목표량'] = MILLION;
-    delete v.have; delete v.need; delete v.lack; delete v.use;
-    outRows.push(v);
-  }
-  const materialOut = { ...(BASE.materials||{}), materials: outRows };
-  pyodide.FS.writeFile('materials.json', JSON.stringify(materialOut), { encoding:'utf8' });
-  pyodide.FS.writeFile('event_quests.json', JSON.stringify(BASE.quests), { encoding:'utf8' });
-  pyodide.FS.writeFile('event_items.json', JSON.stringify(BASE.items), { encoding:'utf8' });
+      // 항상 기본/업로드 반영 파일을 씁니다.
+      pyodide.FS.writeFile('materials.json', JSON.stringify(BASE.materials), { encoding:'utf8' });
+      pyodide.FS.writeFile('event_quests.json', JSON.stringify(BASE.quests), { encoding:'utf8' });
+      pyodide.FS.writeFile('event_items.json', JSON.stringify(BASE.items), { encoding:'utf8' });
     }
 
-    // calc_event_eff.py를 그대로 사용
     async function writeCorePyFromFile() {
       const code = await fetch('calc_event_eff.py').then(r=>r.text());
       pyodide.FS.writeFile('calc_event_eff.py', code, { encoding:'utf8' });
@@ -265,47 +273,34 @@ const rows = BASE.materials.materials || [];
 
     // ===== 4) 실행 =====
     async function runSimulation() {
-const out = document.querySelector('#out');
-  out.textContent = '실행 중… (브라우저에서 파이썬 코드가 돌아가는 중)';
-  document.querySelector('#runBtn').disabled = true;
-  try {
-    readEditsIntoMaterials();
+      const out = document.querySelector('#out');
+      out.textContent = '실행 중… (브라우저에서 파이썬 코드가 돌아가는 중)';
+      document.querySelector('#runBtn').disabled = true;
+      try {
+        // 표 입력 반영
+        readEditsIntoMaterials();
 
-    const rows = (BASE.materials.materials||[]);
-    let totalLack = 0;
-    for (const m of rows){
-      const name = String(m.item||'');
-      if (shouldHide(name) && !(isForceNeed1M(name)||name===NAME_QP)) continue;
-      const hv = Number(m['보유량'] ?? 0);
-      const nd = Number(m['목표량'] ?? 0);
-      const lk = Math.max(nd - hv, 0);
-      totalLack += lk;
-    }
-    if (totalLack <= 0){
-      out.textContent = '필요 수량이 0입니다. materials.json에서 목표량을 설정하거나 업로드 후 다시 실행하세요.';
-      return;
-    }
+        // 사과 수량: 입력값이 비어있으면 업로드(chaldea)에서 읽은 기본값 사용
+        const apples = {
+          gold:   (document.querySelector('#apple-gold').value!==''   ? Number(document.querySelector('#apple-gold').value)   : Number(LOADED_APPLES.gold   || 0)),
+          silver: (document.querySelector('#apple-silver').value!=='' ? Number(document.querySelector('#apple-silver').value) : Number(LOADED_APPLES.silver || 0)),
+          blue:   (document.querySelector('#apple-blue').value!==''   ? Number(document.querySelector('#apple-blue').value)   : Number(LOADED_APPLES.blue   || 0)),
+          copper: (document.querySelector('#apple-copper').value!=='' ? Number(document.querySelector('#apple-copper').value) : Number(LOADED_APPLES.copper || 0)),
+        };
 
-    const apples = {
-      gold:   Number(document.querySelector('#apple-gold').value||0),
-      silver: Number(document.querySelector('#apple-silver').value||0),
-      blue:   Number(document.querySelector('#apple-blue').value||0),
-      copper: Number(document.querySelector('#apple-copper').value||0),
-    };
+        // AP 회복량: 값이 비어있다면 기본(금=146, 은=73) 유지
+        const appleAP = {
+          gold:   (document.querySelector('#ap-gold').value!==''   ? Number(document.querySelector('#ap-gold').value)   : null),
+          silver: (document.querySelector('#ap-silver').value!=='' ? Number(document.querySelector('#ap-silver').value) : null),
+        };
 
-    // 사용자 AP 회복량 (빈칸 또는 0/음수면 기본 146/73 사용)
-    const _rg = Number(document.querySelector('#aprec-gold')?.value || 0);
-    const _rs = Number(document.querySelector('#aprec-silver')?.value || 0);
-    const aprec = {
-      gold:   (_rg > 0 ? _rg : 146),
-      silver: (_rs > 0 ? _rs : 73),
-    };
+        await writeFiles();
+        await writeCorePyFromFile();
 
-    await writeFiles();
-    await writeCorePyFromFile();
-
-    const py = `
+        const py = `
 import sys, importlib.util
+
+# 인자 고정
 sys.argv = ["calc_event_eff.py",
             "--materials","materials.json",
             "--quests","event_quests.json",
@@ -314,85 +309,162 @@ sys.argv = ["calc_event_eff.py",
             "--table-format","text",
             "--table-style","ascii",
             "--log","run_log.txt"]
+
 spec = importlib.util.spec_from_file_location("core","calc_event_eff.py")
 core = importlib.util.module_from_spec(spec); spec.loader.exec_module(core)
 
+# 사과 수량 주입(없으면 생성)
 try:
     core.APPLE_COUNTS
 except AttributeError:
     core.APPLE_COUNTS = {}
-for k,v in ${'__JS_AP__'}.items():
+for k in ["gold","silver","blue","copper"]:
+    core.APPLE_COUNTS[k] = float(${JSON.stringify(0)})  # init
+for k,v in __JS_AP_COUNTS__.items():
     try:
         core.APPLE_COUNTS[k] = float(v) if v is not None else 0.0
     except Exception:
         core.APPLE_COUNTS[k] = 0.0
 
-core.TABLE_FORMAT = "text"
-core.TABLE_STYLE  = "ascii"
-# 사용자 지정 사과 AP 회복량(금/은) 반영
+# AP 회복량(금/은) 주입: 값이 제공된 경우만 덮어씀
 try:
     core.APPLE_AP_BY_POOL
 except AttributeError:
-    core.APPLE_AP_BY_POOL = dict(core.APPLE_AP_BY_POOL)
-for k,v in ${'__JS_APREC__'}.items():
-    try:
-        core.APPLE_AP_BY_POOL[k] = float(v)
-    except Exception:
-        pass
+    core.APPLE_AP_BY_POOL = {"gold":146.0,"silver":73.0,"blue":40.0,"copper":10.0}
+for k,v in __JS_AP_PER_APPLE__.items():
+    if v is not None:
+        try:
+            core.APPLE_AP_BY_POOL[k] = float(v)
+        except Exception:
+            pass
+
+core.TABLE_FORMAT = "text"
+core.TABLE_STYLE  = "ascii"
+
 core.main()
 open("run_log.txt","r",encoding="utf-8").read()
-    `.replace('__JS_AP__', JSON.stringify(apples));
-    const py2 = py.replace('__JS_APREC__', JSON.stringify(aprec));
+        `.replace('__JS_AP_COUNTS__', JSON.stringify(apples)).replace('__JS_AP_PER_APPLE__', JSON.stringify(appleAP));
 
-    const log = await pyodide.runPythonAsync(py2);
-    out.textContent = log || '(로그 비어 있음)';
-    document.querySelector('#dlBtn').disabled = false;
-  } catch (e) {
-    out.textContent = '에러 발생: ' + (e && e.message ? e.message : e);
-  } finally {
-    document.querySelector('#runBtn').disabled = false;
-  }
+        const log = await pyodide.runPythonAsync(py);
+        out.textContent = log || '(로그 비어 있음)';
+        document.querySelector('#dlBtn').disabled = false;
+      } catch (e) {
+        out.textContent = '에러 발생: ' + (e && e.message ? e.message : e);
+      } finally {
+        document.querySelector('#runBtn').disabled = false;
+      }
     }
 
-    // ===== 5) 초기화 & 업로드 처리 =====
-    async function handleUpload(ev){
-const file = ev.target.files && ev.target.files[0];
-  if (!file) return;
-  try{
-    const txt = await file.text();
-    const json = JSON.parse(txt);
-    if (!json || !Array.isArray(json.materials)) throw new Error('materials 배열이 없습니다.');
-
-    for (const m of (json.materials||[])){
-      if (!('보유량' in m) && ('have' in m)) m['보유량'] = Number(m.have||0);
-      if (!('목표량' in m) && ('need' in m)) m['목표량'] = Number(m.need||0);
-      delete m.have; delete m.need; delete m.lack; delete m.use;
-    }
-
-    BASE.materials = json;
-    applyHiddenItemPolicies();
-    RESET_SNAPSHOT = structuredClone(BASE.materials);
-    renderTable(document.querySelector('#search').value||'');
-
-    const tag = document.querySelector('#matUploadName');
-    if (tag){ tag.style.display='inline-block'; tag.textContent = file.name; }
-  }catch(err){
-    alert('materials.json 파싱 실패: ' + err);
-  }finally{
-    ev.target.value = '';
-  }
-    }
-
-    (async () => {
+    // ===== 5) 업로드 처리 =====
+    async function handleMaterials(ev){
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
       try{
-        BASE = await loadJsonFiles();
-
-        // ① 기본 시작: 모든 재료 0으로 세팅한 스냅샷을 활성화
-        const zeroed = makeZeroBaseline(BASE.materials);
-        BASE.materials = zeroed;
+        const txt = await file.text();
+        const json = JSON.parse(txt);
+        if (!json || !Array.isArray(json.materials)) throw new Error('materials 배열이 없습니다.');
+        BASE.materials = json;
+        window.RESET_SNAPSHOT = structuredClone(BASE.materials);
         applyHiddenItemPolicies();
-        RESET_SNAPSHOT = structuredClone(BASE.materials); // Reset은 "0으로 세팅된 상태"로
+        uploaded.materials = { name:file.name };
+        refreshBadges();
+        renderTable(document.querySelector('#search').value||'');
+      }catch(err){
+        alert('materials.json 파싱 실패: ' + err);
+      }finally{
+        ev.target.value = '';
+      }
+    }
 
+    // 자동 감지 업로드(chaldea, event_items, event_quests)
+    async function handleAny(ev){
+      const files = Array.from(ev.target.files||[]);
+      for (const file of files){
+        try{
+          const txt = await file.text();
+          const json = JSON.parse(txt);
+
+          // 1) Chaldea 사용자 데이터 (version/users/items)
+          if (json && typeof json==='object' && json.version && Array.isArray(json.users)){
+            const idx = Number(json.curUserKey||0);
+            const user = json.users[idx] || json.users[0];
+
+            // items: current have (ids)
+            const items = user && user.items && typeof user.items==='object' ? user.items : null;
+
+            // planItemCounts: lack (ids)
+            const plan  = user && user.planItemCounts && typeof user.planItemCounts==='object' ? user.planItemCounts
+                          : (typeof json.planItemCounts==='object' ? json.planItemCounts : null);
+
+            if (items){
+              // materials have by id (exclude apples)
+              applyHaveAndPlanById(items, null);
+            }
+            if (plan){
+              // compute need = have + lack using id mapping
+              applyHaveAndPlanById(null, plan);
+            }
+
+            uploaded.chaldea = { name:file.name };
+            refreshBadges();
+
+            // update placeholders for apples if inputs still blank
+            const fld = {'gold':'#apple-gold','silver':'#apple-silver','blue':'#apple-blue','copper':'#apple-copper'};
+            for (const [pool, sel] of Object.entries(fld)){
+              const el = document.querySelector(sel);
+              if (el && (el.value==='' || el.value==null)){
+                el.placeholder = String(LOADED_APPLES[pool] ?? 0);
+              }
+            }
+
+            // re-render table to show have/need placeholders
+            renderTable(document.querySelector('#search').value||'');
+            continue;
+          }
+
+          // 2) event_items.json
+          if (json && json.event_items){
+            BASE.items = json;
+            uploaded.items = { name:file.name };
+            refreshBadges();
+            continue;
+          }
+
+          // 3) event_quests.json
+          if (json && (json.event_quests || Array.isArray(json))){
+            BASE.quests = json;
+            uploaded.quests = { name:file.name };
+            refreshBadges();
+            continue;
+          }
+
+          // 4) materials.json (보조 입력)
+          if (json && Array.isArray(json.materials)){
+            BASE.materials = json;
+            window.RESET_SNAPSHOT = structuredClone(BASE.materials);
+            applyHiddenItemPolicies();
+            uploaded.materials = { name:file.name };
+            refreshBadges();
+            renderTable(document.querySelector('#search').value||'');
+            continue;
+          }
+
+          alert('알 수 없는 JSON 형식입니다: ' + file.name);
+        }catch(err){
+          alert(file.name + ' 처리 실패: ' + err);
+        }
+      }
+      ev.target.value = '';
+    }
+
+    // ===== 6) 부팅 =====
+    (async ()=>{
+      try{
+        setP(5,'기본 데이터 불러오는 중');
+        DEFAULT_BASE = await loadJsonFiles();
+        BASE = structuredClone(DEFAULT_BASE);
+        window.RESET_SNAPSHOT = structuredClone(BASE.materials);
+        applyHiddenItemPolicies();
         renderTable();
 
         await bootPyodide();
@@ -408,35 +480,54 @@ const file = ev.target.files && ev.target.files[0];
         document.querySelector('#runBtn').addEventListener('click', runSimulation);
         document.querySelector('#resetBtn').addEventListener('click', resetInputs);
         document.querySelector('#search').addEventListener('input', (e)=> renderTable(e.target.value||''));
-        document.querySelector('#matUpload').addEventListener('change', handleUpload);
+        document.querySelector('#matUpload').addEventListener('change', handleMaterials);
+        document.querySelector('#anyUpload').addEventListener('change', handleAny);
       }catch(err){
         document.querySelector('#boot').innerHTML = '<b class="err">초기화 실패:</b> '+err;
       }
     })();
-  </script>
-
-  <script>
-  function normalizeLeadingZeros(el){ try{ el.value = el.value.replace(/^0+(?=\d)/,''); }catch(e){} }
-  function attachNumericUX(){
-    const sels = ['#apple-gold','#apple-silver','#apple-blue','#apple-copper','#aprec-gold','#aprec-silver'];
-    sels.forEach(sel=>{
-      const el = document.querySelector(sel); if(!el) return;
-      if (el.value === '0') el.value = '';
-      el.placeholder = el.placeholder || '0';
-      el.addEventListener('focus', ()=>{ if(el.value==='0') el.value=''; el.select(); });
-      el.addEventListener('input', ()=> normalizeLeadingZeros(el));
-    });
-    document.addEventListener('focusin', (e)=>{
-      const t = e.target;
-      if (t && t.matches('input[type="number"][data-name]')){ if(t.value==='0') t.value=''; t.select(); }
-    });
-    document.addEventListener('input', (e)=>{
-      const t = e.target;
-      if (t && t.matches('input[type="number"][data-name]')) normalizeLeadingZeros(t);
-    });
+  
+function buildMaterialIndexById(){
+  const idx = new Map();
+  const rows = (BASE.materials && Array.isArray(BASE.materials.materials)) ? BASE.materials.materials : [];
+  for (const r of rows){
+    if (r && (r.id!=null)){
+      idx.set(String(r.id), r);
+    }
   }
-  document.addEventListener('DOMContentLoaded', attachNumericUX);
-  </script>
-    
+  return idx;
+}
+function applyHaveAndPlanById(haveMap, planMap){
+  const idx = buildMaterialIndexById();
+  // 1) apply have
+  if (haveMap){
+    for (const [id, hv] of Object.entries(haveMap)){
+      if (['1','2','3','4'].includes(String(id))) continue; // apples handled separately
+      const row = idx.get(String(id));
+      if (!row) continue;
+      const v = Number(hv)||0;
+      row.have = v;
+    }
+  }
+  // 2) apply plan (lack -> need = have + lack)
+  if (planMap){
+    for (const [id, lk] of Object.entries(planMap)){
+      const row = idx.get(String(id));
+      if (!row) continue;
+      const lack = Math.max(Number(lk)||0, 0);
+      const have = Number(row.have||0);
+      row.need = have + lack;
+    }
+  }
+  // 3) recompute row.lack
+  const rows = (BASE.materials && Array.isArray(BASE.materials.materials)) ? BASE.materials.materials : [];
+  for (const row of rows){
+    const have = Number(row.have||0);
+    const need = Number(row.need||0);
+    row.lack = Math.max(need - have, 0);
+  }
+}
+
+</script>
 </body>
 </html>

@@ -272,35 +272,32 @@
     }
 
     // ===== 4) 실행 =====
-    async function runSimulation() {
-      const out = document.querySelector('#out');
-      out.textContent = '실행 중… (브라우저에서 파이썬 코드가 돌아가는 중)';
-      document.querySelector('#runBtn').disabled = true;
-      try {
-        // 표 입력 반영
-        readEditsIntoMaterials();
+    async function runSimulation(){
+  const out = document.querySelector('#out');
+  out.textContent = '실행 중… (브라우저에서 파이썬 코드가 돌아가는 중)';
+  document.querySelector('#runBtn').disabled = true;
+  try{
+    readEditsIntoMaterials();
 
-        // 사과 수량: 입력값이 비어있으면 업로드(chaldea)에서 읽은 기본값 사용
-        const apples = {
-          gold:   (document.querySelector('#apple-gold').value!==''   ? Number(document.querySelector('#apple-gold').value)   : Number(LOADED_APPLES.gold   || 0)),
-          silver: (document.querySelector('#apple-silver').value!=='' ? Number(document.querySelector('#apple-silver').value) : Number(LOADED_APPLES.silver || 0)),
-          blue:   (document.querySelector('#apple-blue').value!==''   ? Number(document.querySelector('#apple-blue').value)   : Number(LOADED_APPLES.blue   || 0)),
-          copper: (document.querySelector('#apple-copper').value!=='' ? Number(document.querySelector('#apple-copper').value) : Number(LOADED_APPLES.copper || 0)),
-        };
+const apples = {
+  gold:   (document.querySelector('#apple-gold').value!==''   ? Number(document.querySelector('#apple-gold').value)   : Number(LOADED_APPLES.gold   || 0)),
+  silver: (document.querySelector('#apple-silver').value!=='' ? Number(document.querySelector('#apple-silver').value) : Number(LOADED_APPLES.silver || 0)),
+  blue:   (document.querySelector('#apple-blue').value!==''   ? Number(document.querySelector('#apple-blue').value)   : Number(LOADED_APPLES.blue   || 0)),
+  copper: (document.querySelector('#apple-copper').value!=='' ? Number(document.querySelector('#apple-copper').value) : Number(LOADED_APPLES.copper || 0)),
+};
 
-        // AP 회복량: 값이 비어있다면 기본(금=146, 은=73) 유지
-        const appleAP = {
-          gold:   (document.querySelector('#ap-gold').value!==''   ? Number(document.querySelector('#ap-gold').value)   : null),
-          silver: (document.querySelector('#ap-silver').value!=='' ? Number(document.querySelector('#ap-silver').value) : null),
-        };
+// AP per apple (blank -> defaults 146/73)
+const _rg = Number(document.querySelector('#ap-gold')?.value || 0);
+const _rs = Number(document.querySelector('#ap-silver')?.value || 0);
+const aprec = { gold: (_rg>0?_rg:146), silver: (_rs>0?_rs:73) };
 
-        await writeFiles();
-        await writeCorePyFromFile();
+await writeFiles();
+await writeCorePyFromFile();
 
-        const py = `
+const py = `
 import sys, importlib.util
 
-# 인자 고정
+# argv
 sys.argv = ["calc_event_eff.py",
             "--materials","materials.json",
             "--quests","event_quests.json",
@@ -313,190 +310,45 @@ sys.argv = ["calc_event_eff.py",
 spec = importlib.util.spec_from_file_location("core","calc_event_eff.py")
 core = importlib.util.module_from_spec(spec); spec.loader.exec_module(core)
 
-# 사과 수량 주입(없으면 생성)
+# Apple counts
 try:
     core.APPLE_COUNTS
 except AttributeError:
     core.APPLE_COUNTS = {}
-for k in ["gold","silver","blue","copper"]:
-    core.APPLE_COUNTS[k] = float(${JSON.stringify(0)})  # init
-for k,v in __JS_AP_COUNTS__.items():
+for k,v in __AP_DICT__.items():
     try:
-        core.APPLE_COUNTS[k] = float(v) if v is not None else 0.0
+        core.APPLE_COUNTS[k] = float(v)
     except Exception:
         core.APPLE_COUNTS[k] = 0.0
 
-# AP 회복량(금/은) 주입: 값이 제공된 경우만 덮어씀
+# AP per apple overrides
 try:
     core.APPLE_AP_BY_POOL
 except AttributeError:
     core.APPLE_AP_BY_POOL = {"gold":146.0,"silver":73.0,"blue":40.0,"copper":10.0}
-for k,v in __JS_AP_PER_APPLE__.items():
-    if v is not None:
-        try:
-            core.APPLE_AP_BY_POOL[k] = float(v)
-        except Exception:
-            pass
+for k,v in __APREC__.items():
+    try:
+        core.APPLE_AP_BY_POOL[k] = float(v)
+    except Exception:
+        pass
 
 core.TABLE_FORMAT = "text"
 core.TABLE_STYLE  = "ascii"
-
 core.main()
 open("run_log.txt","r",encoding="utf-8").read()
-        `.replace('__JS_AP_COUNTS__', JSON.stringify(apples)).replace('__JS_AP_PER_APPLE__', JSON.stringify(appleAP));
+`.replace('__AP_DICT__', JSON.stringify(apples)).replace('__APREC__', JSON.stringify(aprec));
 
-        const log = await pyodide.runPythonAsync(py);
-        out.textContent = log || '(로그 비어 있음)';
-        document.querySelector('#dlBtn').disabled = false;
-      } catch (e) {
-        out.textContent = '에러 발생: ' + (e && e.message ? e.message : e);
-      } finally {
-        document.querySelector('#runBtn').disabled = false;
-      }
-    }
+const log = await pyodide.runPythonAsync(py);
+document.querySelector('#out').textContent = log || '(로그 비어 있음)';
 
-    // ===== 5) 업로드 처리 =====
-    async function handleMaterials(ev){
-      const file = ev.target.files && ev.target.files[0];
-      if (!file) return;
-      try{
-        const txt = await file.text();
-        const json = JSON.parse(txt);
-        if (!json || !Array.isArray(json.materials)) throw new Error('materials 배열이 없습니다.');
-        BASE.materials = json;
-        window.RESET_SNAPSHOT = structuredClone(BASE.materials);
-        applyHiddenItemPolicies();
-        uploaded.materials = { name:file.name };
-        refreshBadges();
-        renderTable(document.querySelector('#search').value||'');
-      }catch(err){
-        alert('materials.json 파싱 실패: ' + err);
-      }finally{
-        ev.target.value = '';
-      }
-    }
-
-    // 자동 감지 업로드(chaldea, event_items, event_quests)
-    async function handleAny(ev){
-      const files = Array.from(ev.target.files||[]);
-      for (const file of files){
-        try{
-          const txt = await file.text();
-          const json = JSON.parse(txt);
-
-          // 1) Chaldea 사용자 데이터 (version/users/items)
-          if (json && typeof json==='object' && json.version && Array.isArray(json.users)){
-            const idx = Number(json.curUserKey||0);
-            const user = json.users[idx] || json.users[0];
-
-            // items: current have (ids)
-            const items = user && user.items && typeof user.items==='object' ? user.items : null;
-
-            // planItemCounts: lack (ids)
-            const plan  = user && user.planItemCounts && typeof user.planItemCounts==='object' ? user.planItemCounts
-                          : (typeof json.planItemCounts==='object' ? json.planItemCounts : null);
-
-            if (items){
-              // materials have by id (exclude apples)
-              applyHaveAndPlanById(items, null);
-            }
-            if (plan){
-              // compute need = have + lack using id mapping
-              applyHaveAndPlanById(null, plan);
-            }
-
-            uploaded.chaldea = { name:file.name };
-            refreshBadges();
-
-            // update placeholders for apples if inputs still blank
-            const fld = {'gold':'#apple-gold','silver':'#apple-silver','blue':'#apple-blue','copper':'#apple-copper'};
-            for (const [pool, sel] of Object.entries(fld)){
-              const el = document.querySelector(sel);
-              if (el && (el.value==='' || el.value==null)){
-                el.placeholder = String(LOADED_APPLES[pool] ?? 0);
-              }
-            }
-
-            // re-render table to show have/need placeholders
-            renderTable(document.querySelector('#search').value||'');
-            continue;
-          }
-
-          // 2) event_items.json
-          if (json && json.event_items){
-            BASE.items = json;
-            uploaded.items = { name:file.name };
-            refreshBadges();
-            continue;
-          }
-
-          // 3) event_quests.json
-          if (json && (json.event_quests || Array.isArray(json))){
-            BASE.quests = json;
-            uploaded.quests = { name:file.name };
-            refreshBadges();
-            continue;
-          }
-
-          // 4) materials.json (보조 입력)
-          if (json && Array.isArray(json.materials)){
-            BASE.materials = json;
-            window.RESET_SNAPSHOT = structuredClone(BASE.materials);
-            applyHiddenItemPolicies();
-            uploaded.materials = { name:file.name };
-            refreshBadges();
-            renderTable(document.querySelector('#search').value||'');
-            continue;
-          }
-
-          alert('알 수 없는 JSON 형식입니다: ' + file.name);
-        }catch(err){
-          alert(file.name + ' 처리 실패: ' + err);
-        }
-      }
-      ev.target.value = '';
-    }
-
-    // ===== 6) 부팅 =====
-    (async ()=>{
-      try{
-        setP(5,'기본 데이터 불러오는 중');
-        DEFAULT_BASE = await loadJsonFiles();
-        BASE = structuredClone(DEFAULT_BASE);
-        window.RESET_SNAPSHOT = structuredClone(BASE.materials);
-        applyHiddenItemPolicies();
-        renderTable();
-
-        await bootPyodide();
-        document.querySelector('#boot').innerHTML = '<b class="ok">준비 완료!</b> 사과/아이템 수량을 입력하고 <b>시뮬레이션 실행</b>을 누르세요.';
-        document.querySelector('#runBtn').disabled = false;
-        document.querySelector('#resetBtn').disabled = false;
-
-        document.querySelector('#dlBtn').addEventListener('click', ()=>{
-          const blob = new Blob([document.querySelector('#out').textContent], {type:'text/plain;charset=utf-8'});
-          const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'run_log.txt' });
-          a.click(); URL.revokeObjectURL(a.href);
-        });
-        document.querySelector('#runBtn').addEventListener('click', runSimulation);
-        document.querySelector('#resetBtn').addEventListener('click', resetInputs);
-        document.querySelector('#search').addEventListener('input', (e)=> renderTable(e.target.value||''));
-        document.querySelector('#matUpload').addEventListener('change', handleMaterials);
-        document.querySelector('#anyUpload').addEventListener('change', handleAny);
-      }catch(err){
-        document.querySelector('#boot').innerHTML = '<b class="err">초기화 실패:</b> '+err;
-      }
-    })();
-  
-function buildMaterialIndexById(){
-  const idx = new Map();
-  const rows = (BASE.materials && Array.isArray(BASE.materials.materials)) ? BASE.materials.materials : [];
-  for (const r of rows){
-    if (r && (r.id!=null)){
-      idx.set(String(r.id), r);
-    }
+    document.querySelector('#dlBtn').disabled = false;
+  }catch(e){
+    out.textContent = '에러 발생: ' + (e && e.message ? e.message : e);
+  }finally{
+    document.querySelector('#runBtn').disabled = false;
   }
-  return idx;
 }
+
 function applyHaveAndPlanById(haveMap, planMap){
   const idx = buildMaterialIndexById();
   // 1) apply have
@@ -529,5 +381,29 @@ function applyHaveAndPlanById(haveMap, planMap){
 }
 
 </script>
+
+<script>
+function normalizeLeadingZeros(el){ try{ el.value = el.value.replace(/^0+(?=\d)/,''); }catch(e){} }
+function attachNumericUX(){
+  const sels = ['#apple-gold','#apple-silver','#apple-blue','#apple-copper','#ap-gold','#ap-silver'];
+  sels.forEach(sel=>{
+    const el = document.querySelector(sel); if(!el) return;
+    if (el.value === '0') el.value = '';
+    el.placeholder = el.placeholder || '0';
+    el.addEventListener('focus', ()=>{ if(el.value==='') el.select(); });
+    el.addEventListener('input', ()=> normalizeLeadingZeros(el));
+  });
+  document.addEventListener('focusin', (e)=>{
+    const t = e.target;
+    if (t && t.matches('input[type="number"][data-name]')){ if(t.value==='0') t.value=''; t.select(); }
+  });
+  document.addEventListener('input', (e)=>{
+    const t = e.target;
+    if (t && t.matches('input[type="number"][data-name]')) normalizeLeadingZeros(t);
+  });
+}
+document.addEventListener('DOMContentLoaded', attachNumericUX);
+</script>
+
 </body>
 </html>

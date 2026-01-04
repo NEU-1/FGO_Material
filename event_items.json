@@ -95,6 +95,22 @@
         { "item": "구십구경",       "rate": 0.2 },
         { "item": "도깨비불꽈리",   "rate": 0.2 }
       ]
+    },
+    {
+      "event": "관위대관전_캐스터",
+      "case": "roulette",
+      "need_tickets": 600,
+      "drops": [
+        { "item": "영웅의증표", "rate": 3 },
+        { "item": "용의송곳니",     "rate": 3 },
+        { "item": "우자의사슬",   "rate": 3 },
+        { "item": "팔연쌍정",       "rate": 2 },
+        { "item": "무간의톱니바퀴",           "rate": 2 },
+        { "item": "소라껍데기",         "rate": 2 },
+        { "item": "동사과",         "rate": 3 },
+        { "item": "QP",             "rate": 2.03 },
+        { "item": "종화4",          "rate": 30 }
+      ]
     }
   ]
 }

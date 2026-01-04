@@ -1171,8 +1171,8 @@ def main():
 
     last_choice_key = None
     run_idx = 0
-    session_segments: List[Tuple[str, str, int]] = []
-    prev_session_key: Optional[Tuple[str, str]] = None
+    session_segments: List[Tuple[str, str, str, int]] = []
+    prev_session_key: Optional[Tuple[str, str, str]] = None
 
     # 3) AP가 남을 동안 반복
     while ap_pool >= args.ap_cost:
@@ -1192,13 +1192,13 @@ def main():
 
         choice_key = f"{ev}|{cs}|{stage_name}|{diff}"
         stage_changed_trigger = (last_choice_key is None or choice_key != last_choice_key)
-        sess_key = (ev, diff)
+        sess_key = (ev, stage_name, diff)
         if prev_session_key != sess_key:
-            session_segments.append((ev, diff, 1))
+            session_segments.append((ev, stage_name, diff, 1))
             prev_session_key = sess_key
         else:
-            name, d, cnt = session_segments[-1]
-            session_segments[-1] = (name, d, cnt + 1)
+            name, stg, d, cnt = session_segments[-1]
+            session_segments[-1] = (name, stg, d, cnt + 1)
 
         ap_pool -= args.ap_cost
         block = _get_event_block(quests_def, ev, cs); stage_def = None
@@ -1307,7 +1307,7 @@ def main():
 
     # 로그 상단 요약 블록 삽입
     header = ["## 주회 세션(순서대로) — 이벤트별 연속 주행 구간 요약"]
-    body = [f"  {i+1:>2}. {name} [{d}] — {cnt}판" for i, (name, d, cnt) in enumerate(session_segments)]
+    body = [f"  {i+1:>2}. {name} [{stg}/{d}] — {cnt}판" for i, (name, stg, d, cnt) in enumerate(session_segments)]
     lines = header + body + ["", "## 원본 로그 ↓", ""]
     for ln in header + body:
         print(ln)
